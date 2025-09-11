@@ -20,11 +20,12 @@ jobs:
 
       - name: Generate production config
         run: |
-          # Replace placeholders in template with actual values
-          sed -e "s/\${SUPABASE_URL}/${{ secrets.SUPABASE_URL }}/g" \
-              -e "s/\${SUPABASE_ANON_KEY}/${{ secrets.SUPABASE_ANON_KEY }}/g" \
-              -e "s/\${MAPBOX_ACCESS_TOKEN}/${{ secrets.MAPBOX_ACCESS_TOKEN }}/g" \
-              js/config.template.js > js/config.js
+          # Use environment variables to avoid sed issues with special characters
+          cat js/config.template.js | \
+          sed "s|\${SUPABASE_URL}|${{ secrets.SUPABASE_URL }}|g" | \
+          sed "s|\${SUPABASE_ANON_KEY}|${{ secrets.SUPABASE_ANON_KEY }}|g" | \
+          sed "s|\${MAPBOX_ACCESS_TOKEN}|${{ secrets.MAPBOX_ACCESS_TOKEN }}|g" \
+          > js/config.js
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
