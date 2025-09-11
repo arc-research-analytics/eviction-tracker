@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fulton Evictions</title>
+
+    <!-- Mapbox JS and CSS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Web Awesome CDN -->
+    <link
+      rel="stylesheet"
+      href="https://early.webawesome.com/webawesome@3.0.0-beta.5/dist/styles/webawesome.css"
+    />
+    <script
+      type="module"
+      src="https://early.webawesome.com/webawesome@3.0.0-beta.5/dist/webawesome.loader.js"
+    ></script>
+
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- header -->
+    <header>
+      <span>Eviction Tracker</span>
+    </header>
+
+    <!-- Month and total evictions display -->
+    <div id="monthDisplay">
+      <div id="monthText">Loading...</div>
+      <div id="totalText">Calculating total...</div>
+    </div>
+
+    <!-- Full-screen loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="loading-content">
+        <wa-spinner size="large"></wa-spinner>
+        <div class="loading-text">Loading eviction data...</div>
+      </div>
+    </div>
+
+    <!-- Slider at center bottom -->
+    <div id="sliderContainer">
+      <wa-slider
+        id="monthSlider"
+        label="Select time period"
+        min="0"
+        max="113"
+        value="113"
+        step="1"
+      ></wa-slider>
+      <div id="sliderLabel">Jun 2025</div>
+    </div>
+
+    <!-- About button anchored bottom-left -->
+    <wa-button id="aboutBtn" variant="neutral">
+      <wa-icon name="info-circle"></wa-icon> About
+    </wa-button>
+
+    <!-- Load config based on environment -->
+    <script>
+      const isDevelopment =
+        location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      const configScript = document.createElement("script");
+      configScript.src = isDevelopment ? "js/config.dev.js" : "js/config.js";
+      document.head.appendChild(configScript);
+
+      configScript.onload = function () {
+        // Load modules in the correct order
+        const moduleScripts = [
+          "js/MonthUtils.js",
+          "js/DataLoader.js",
+          "js/UIManager.js",
+          "js/MapManager.js",
+          "js/app.js",
+        ];
+
+        let loadedScripts = 0;
+
+        function loadNextScript() {
+          if (loadedScripts >= moduleScripts.length) return;
+
+          const script = document.createElement("script");
+          script.src = moduleScripts[loadedScripts];
+          script.onerror = function () {
+            console.error(`Failed to load ${moduleScripts[loadedScripts]}`);
+          };
+          script.onload = function () {
+            loadedScripts++;
+            loadNextScript();
+          };
+          document.head.appendChild(script);
+        }
+
+        // Start loading the first script
+        loadNextScript();
+      };
+      configScript.onerror = function () {
+        console.error("Failed to load config script:", configScript.src);
+      };
+    </script>
+  </body>
+</html>
