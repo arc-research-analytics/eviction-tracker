@@ -173,6 +173,7 @@ class UIManager {
             }, 100);
         };
         
+        
         // Try multiple events and log which ones actually fire
         const eventTypes = ['input', 'change', 'wa-input', 'wa-change'];
         
