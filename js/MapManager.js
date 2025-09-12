@@ -91,6 +91,19 @@ class MapManager {
                 }
             });
 
+            // Add hover border layer
+            this.map.addLayer({
+                id: 'tract-borders-hover',
+                type: 'line',
+                source: 'eviction-tracts',
+                paint: {
+                    'line-color': '#000000',  // Black outline on hover
+                    'line-width': 2.5,        // Thicker outline on hover
+                    'line-opacity': 1
+                },
+                filter: ['==', ['get', 'GEOID'], ''] // Initially hide all features
+            });
+
             this.setupMapInteractions();
 
         } catch (error) {
@@ -148,6 +161,9 @@ class MapManager {
      * Set up map interactions (tooltips, hover effects)
      */
     setupMapInteractions() {
+        // Track currently hovered feature for border highlighting
+        let hoveredFeatureId = null;
+
         // Create tooltip element
         const tooltip = document.createElement('div');
         tooltip.className = 'tooltip';
@@ -180,6 +196,11 @@ class MapManager {
             this.map.getCanvas().style.cursor = 'pointer';
             tooltip.style.display = 'block';
             
+            // Show hover border for current feature
+            const tractId = e.features[0].properties.GEOID;
+            hoveredFeatureId = tractId;
+            this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+            
             // Initialize positions
             tooltipPos.x = e.point.x + 10;
             tooltipPos.y = e.point.y - 10;
@@ -198,24 +219,40 @@ class MapManager {
             const properties = e.features[0].properties;
             const filings = properties.totalfilings || 0;
             
+            // Update hover border if we've moved to a different tract
+            const tractId = properties.GEOID;
+            if (tractId !== hoveredFeatureId) {
+                hoveredFeatureId = tractId;
+                this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+            }
+            
+            // Get current month in human readable format
+            const currentMonth = this.dataLoader.getCurrentMonth();
+            const monthUtils = this.dataLoader.getMonthUtils();
+            const monthYear = monthUtils.dbMonthToFullReadable(currentMonth);
             
             tooltip.innerHTML = `
-                <span class="tooltip-count">${filings} evictions</span>
-                <span class="tooltip-hint">Click for historic trend</span>
+                <span class="tooltip-count">${monthYear} evictions: ${filings}</span>
+                <span class="tooltip-hint">Click for historic trends</span>
             `;
             
             // Calculate tooltip target position with smart positioning
             let left = e.point.x + 10;
             let top = e.point.y - 10;
             
+            // Get tooltip dimensions for better positioning
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const tooltipWidth = tooltipRect.width || 200; // fallback width
+            const tooltipHeight = tooltipRect.height || 60; // fallback height
+            
             // Flip horizontally if too close to right edge
-            if (left + 150 > window.innerWidth) {  // 150px estimated tooltip width
-                left = e.point.x - 150;
+            if (left + tooltipWidth > window.innerWidth) {
+                left = e.point.x - tooltipWidth - 10;
             }
             
             // Flip vertically if too close to bottom edge
-            if (top + 60 > window.innerHeight) {  // 60px estimated tooltip height (now taller with 2 lines)
-                top = e.point.y - 60;
+            if (top + tooltipHeight > window.innerHeight) {
+                top = e.point.y - tooltipHeight - 10;
             }
             
             // Ensure tooltip doesn't go off left or top edges
@@ -230,6 +267,10 @@ class MapManager {
         this.map.on('mouseleave', 'tract-fills', () => {
             this.map.getCanvas().style.cursor = '';
             tooltip.style.display = 'none';
+            
+            // Hide hover border
+            hoveredFeatureId = null;
+            this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], '']);
             
             // Stop animation
             if (animationId) {

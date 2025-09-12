@@ -18,13 +18,14 @@ class UIManager {
         this.loadingTimeout = setTimeout(() => {
             const overlay = document.getElementById('loadingOverlay');
             if (overlay && this.isLoading) {
-                overlay.classList.remove('hidden');
+                // Remove any previous fade-out state and show overlay
+                overlay.classList.remove('hidden', 'fade-out');
             }
         }, 500);
     }
 
     /**
-     * Hide loading overlay
+     * Hide loading overlay with fade-out animation
      */
     hideLoading() {
         this.isLoading = false;
@@ -35,10 +36,17 @@ class UIManager {
             this.loadingTimeout = null;
         }
         
-        // Hide overlay if it's currently showing
+        // Fade out overlay if it's currently showing
         const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.classList.add('hidden');
+        if (overlay && !overlay.classList.contains('hidden')) {
+            // Start fade-out animation
+            overlay.classList.add('fade-out');
+            
+            // Hide completely after animation completes (400ms)
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('fade-out');
+            }, 400);
         }
     }
 
