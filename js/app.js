@@ -25,8 +25,15 @@ class EvictionApp {
             // Initialize modules with dependencies
             this.dataLoader = new DataLoader(this.supabase);
             this.uiManager = new UIManager(this.dataLoader);
-            this.popupManager = new PopupManager(this.dataLoader);
-            this.mapManager = new MapManager(CONFIG, this.dataLoader, this.popupManager);
+            
+            // Initialize MapManager first
+            this.mapManager = new MapManager(CONFIG, this.dataLoader);
+            
+            // Then initialize PopupManager with MapManager reference
+            this.popupManager = new PopupManager(this.dataLoader, this.mapManager);
+            
+            // Update MapManager with PopupManager reference
+            this.mapManager.popupManager = this.popupManager;
 
             // Respect initial slider value from DOM before first load
             const sliderEl = document.getElementById('monthSlider');

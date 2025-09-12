@@ -2,10 +2,10 @@
  * MapManager - Handles map initialization, interactions, and layer management
  */
 class MapManager {
-    constructor(config, dataLoader, popupManager) {
+    constructor(config, dataLoader) {
         this.config = config;
         this.dataLoader = dataLoader;
-        this.popupManager = popupManager;
+        this.popupManager = null; // Will be set by app.js after initialization
         this.map = null;
     }
 
@@ -296,7 +296,42 @@ class MapManager {
         });
 
         this.map.on('mouseleave', 'tract-fills', () => {
-            this.map.getCanvas().style.cursor = '';
+            this.map.getCanvas().style.cursor = 'grab';
+        });
+
+        // Add grabbing cursor for panning
+        this.setupPanningCursor();
+    }
+
+    /**
+     * Set up cursor changes for map panning (grab/grabbing)
+     */
+    setupPanningCursor() {
+        const canvas = this.map.getCanvas();
+        
+        // Set default cursor to grab (open hand)
+        canvas.style.cursor = 'grab';
+        
+        // When user starts dragging, show grabbing cursor (closed fist)
+        this.map.on('dragstart', () => {
+            canvas.style.cursor = 'grabbing';
+        });
+        
+        // When drag ends, restore to grab cursor
+        // The existing tract hover logic will override with pointer when needed
+        this.map.on('dragend', () => {
+            canvas.style.cursor = 'grab';
+        });
+        
+        // Also handle mouse events for immediate feedback
+        canvas.addEventListener('mousedown', (e) => {
+            canvas.style.cursor = 'grabbing';
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            // Let the existing hover logic determine the right cursor
+            // This will be overridden by tract hover if over a tract
+            canvas.style.cursor = 'grab';
         });
     }
 
