@@ -26,6 +26,22 @@ class EvictionApp {
             this.uiManager = new UIManager(this.dataLoader);
             this.mapManager = new MapManager(CONFIG, this.dataLoader);
 
+            // Respect initial slider value from DOM before first load
+            const sliderEl = document.getElementById('monthSlider');
+            let initialIndex = this.dataLoader.getMonthUtils().getCurrentMonthIndex();
+            if (sliderEl && sliderEl.value !== undefined && sliderEl.value !== null && sliderEl.value !== '') {
+                const parsed = parseInt(sliderEl.value, 10);
+                if (!Number.isNaN(parsed)) {
+                    initialIndex = parsed;
+                }
+            }
+            const initialMonth = this.dataLoader.getMonthUtils().sliderIndexToDbMonth(initialIndex);
+            if (initialMonth) {
+                this.dataLoader.setCurrentMonth(initialMonth);
+            }
+            // Update the slider label early so the UI matches the chosen start month
+            this.uiManager.updateSliderLabel(initialIndex);
+
             // Start loading process
             this.uiManager.showLoading();
 
@@ -60,18 +76,23 @@ class EvictionApp {
      * Set up slider functionality and event handling
      */
     setupSliderFunctionality() {
-        
-        // Get current month index
-        const currentIndex = this.dataLoader.getMonthUtils().getCurrentMonthIndex();
-        
-        // Set initial slider value
+        // Determine initial slider index from DOM, fallback to current (latest) month
         const slider = document.getElementById('monthSlider');
-        if (slider) {
-            slider.value = currentIndex;
+        let initialIndex = this.dataLoader.getMonthUtils().getCurrentMonthIndex();
+        if (slider && slider.value !== undefined && slider.value !== null && slider.value !== '') {
+            const parsed = parseInt(slider.value, 10);
+            if (!Number.isNaN(parsed)) {
+                initialIndex = parsed;
+            }
         }
-        
-        // Initialize slider label with current month
-        this.uiManager.updateSliderLabel(currentIndex);
+
+        // Ensure the control reflects the initial index
+        if (slider) {
+            slider.value = initialIndex;
+        }
+
+        // Initialize slider label with the chosen initial month
+        this.uiManager.updateSliderLabel(initialIndex);
         
         // Set up the slider event listener with callback
         this.uiManager.setupSliderListener(async (sliderIndex) => {

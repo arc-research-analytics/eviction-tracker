@@ -209,3 +209,16 @@ header {
     width: auto;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
+
+/* About dialog content layout */
+.about-dialog {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.about-dialog img {
+    height: 60px;
+    width: auto;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
