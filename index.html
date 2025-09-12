@@ -65,7 +65,7 @@
         label="Select month"
         min="0"
         max="113"
-        value="113"
+        value="110"
         step="1"
       ></wa-slider>
       <div id="sliderLabel">Jun 2025</div>
@@ -76,10 +76,34 @@
       <wa-icon name="info-circle"></wa-icon> About
     </wa-button>
 
-    <!-- ARC Logo in bottom-right corner -->
-    <div id="arcLogo">
-      <img src="assets/arc_logo.png" alt="Atlanta Regional Commission" />
-    </div>
+    <!-- About dialog (opened by About button) -->
+    <wa-dialog label="About this app" id="aboutDialog">
+      <div class="about-dialog">
+        <img
+          src="assets/arc_logo.png"
+          alt="Atlanta Regional Commission logo"
+          style="display: block; margin: 0 auto"
+        />
+        <div>
+          <div style="font-weight: 600; margin-bottom: 6px">
+            Fulton County Eviction Tracker
+          </div>
+          <div style="color: #555; font-size: 14px; line-height: 1.4">
+            This data visualization was built and is maintained by the Atlanta
+            Regional Commission's
+            <a
+              href="https://atlantaregional.org/what-we-do/research-and-data/"
+              target="_blank"
+              >Research and Analytics</a
+            >
+            department.
+          </div>
+        </div>
+      </div>
+      <wa-button slot="footer" variant="brand" data-dialog="close"
+        >Close</wa-button
+      >
+    </wa-dialog>
 
     <!-- Load config based on environment -->
     <script>
@@ -122,6 +146,23 @@
       configScript.onerror = function () {
         console.error("Failed to load config script:", configScript.src);
       };
+      // Wire About button to open the dialog once DOM is ready
+      (function () {
+        const setup = function () {
+          const dialog = document.getElementById("aboutDialog");
+          const openButton = document.getElementById("aboutBtn");
+          if (dialog && openButton) {
+            openButton.addEventListener("click", function () {
+              dialog.open = true;
+            });
+          }
+        };
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", setup, { once: true });
+        } else {
+          setup();
+        }
+      })();
     </script>
   </body>
 </html>
