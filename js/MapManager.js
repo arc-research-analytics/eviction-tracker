@@ -2,9 +2,10 @@
  * MapManager - Handles map initialization, interactions, and layer management
  */
 class MapManager {
-    constructor(config, dataLoader) {
+    constructor(config, dataLoader, popupManager) {
         this.config = config;
         this.dataLoader = dataLoader;
+        this.popupManager = popupManager;
         this.map = null;
     }
 
@@ -193,7 +194,6 @@ class MapManager {
 
         // Tooltip on hover
         this.map.on('mouseenter', 'tract-fills', (e) => {
-            this.map.getCanvas().style.cursor = 'pointer';
             tooltip.style.display = 'block';
             
             // Show hover border for current feature
@@ -265,7 +265,6 @@ class MapManager {
         });
 
         this.map.on('mouseleave', 'tract-fills', () => {
-            this.map.getCanvas().style.cursor = '';
             tooltip.style.display = 'none';
             
             // Hide hover border
@@ -277,6 +276,27 @@ class MapManager {
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
+        });
+
+        // Click event for showing popups
+        this.map.on('click', 'tract-fills', (e) => {
+            if (this.popupManager && e.features && e.features.length > 0) {
+                const feature = e.features[0];
+                const tractId = feature.properties.GEOID;
+                const tractName = this.popupManager.getTractName(feature.properties);
+                
+                // Show popup with historical data
+                this.popupManager.showTractPopup(tractId, tractName, e);
+            }
+        });
+
+        // Change cursor to pointer when hovering over clickable tracts
+        this.map.on('mouseenter', 'tract-fills', () => {
+            this.map.getCanvas().style.cursor = 'pointer';
+        });
+
+        this.map.on('mouseleave', 'tract-fills', () => {
+            this.map.getCanvas().style.cursor = '';
         });
     }
 
