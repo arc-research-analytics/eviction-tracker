@@ -70,7 +70,8 @@ header {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
     padding: 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border: none;
     z-index: 1000;
 }
 
@@ -128,7 +129,8 @@ header {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
     padding: 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border: none;
     z-index: 1000;
     text-align: center;
     min-width: 140px;
@@ -156,7 +158,8 @@ header {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
     padding: 10px 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border: none;
     z-index: 1000;
     width: 500px;
     text-align: center;
@@ -175,8 +178,21 @@ header {
     left: 10px;
     bottom: 70px;
     z-index: 2;
-    background: transparent;
+}
+
+/* Style the Web Awesome button using shadow parts */
+#aboutBtn::part(base) {
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     border: none;
+    border-radius: 5px;
+    color: #252525;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#aboutBtn::part(base):hover {
+    background-color: #252525;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* ARC Logo positioned beside the legend */
@@ -192,8 +208,4 @@ header {
     height: 60px;
     width: auto;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
-
-#arcLogo:hover {
-    opacity: 1;
 }
