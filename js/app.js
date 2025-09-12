@@ -7,6 +7,7 @@ class EvictionApp {
         this.dataLoader = null;
         this.mapManager = null;
         this.uiManager = null;
+        this.popupManager = null;
         this.initializeApp();
     }
 
@@ -24,7 +25,8 @@ class EvictionApp {
             // Initialize modules with dependencies
             this.dataLoader = new DataLoader(this.supabase);
             this.uiManager = new UIManager(this.dataLoader);
-            this.mapManager = new MapManager(CONFIG, this.dataLoader);
+            this.popupManager = new PopupManager(this.dataLoader);
+            this.mapManager = new MapManager(CONFIG, this.dataLoader, this.popupManager);
 
             // Respect initial slider value from DOM before first load
             const sliderEl = document.getElementById('monthSlider');
@@ -115,6 +117,11 @@ class EvictionApp {
                 // Update month display
                 this.uiManager.updateMonthDisplay();
                 
+                // Update any open popup's vertical line
+                if (this.popupManager) {
+                    this.popupManager.updateVerticalLine();
+                }
+                
                 // Hide loading
                 this.uiManager.hideLoading();
                 
@@ -153,6 +160,13 @@ class EvictionApp {
      */
     getUIManager() {
         return this.uiManager;
+    }
+
+    /**
+     * Get reference to popup manager
+     */
+    getPopupManager() {
+        return this.popupManager;
     }
 }
 

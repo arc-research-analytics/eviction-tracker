@@ -84,8 +84,11 @@ class UIManager {
             const formattedMonth = this.dataLoader.formatMonthDisplay(this.dataLoader.getCurrentMonth());
             const totalEvictions = this.dataLoader.calculateTotalEvictions();
             
-            monthText.textContent = formattedMonth;
-            totalText.textContent = `${totalEvictions.toLocaleString()} evictions`;
+            // Hide the month text element since we're combining the display
+            monthText.style.display = 'none';
+            
+            // Show combined format in the total text element
+            totalText.innerHTML = `Total evictions in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
         }
     }
 
