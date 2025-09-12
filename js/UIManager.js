@@ -173,6 +173,14 @@ class UIManager {
                     try {
                         await onSliderChange(sliderValue);
                         console.log('Data load completed for:', sliderValue);
+                        
+                        // Ensure focus returns to map after data loading completes
+                        const slider = document.getElementById('monthSlider');
+                        const mapCanvas = document.querySelector('#map canvas');
+                        if (slider && mapCanvas) {
+                            slider.blur();
+                            mapCanvas.focus();
+                        }
                     } catch (error) {
                         console.error('Error handling slider change:', error);
                         this.showError('Failed to load data for selected month');
@@ -198,6 +206,32 @@ class UIManager {
             console.log('Mouse up on slider with value:', event.target.value);
             const sliderValue = parseInt(event.target.value);
             handleSliderChange(sliderValue, 'mouseup');
+            
+            // Fix focus issue: blur the slider to allow map to receive mouse events immediately
+            setTimeout(() => {
+                slider.blur();
+                // Ensure map canvas can receive focus
+                const mapCanvas = document.querySelector('#map canvas');
+                if (mapCanvas) {
+                    mapCanvas.focus();
+                }
+            }, 10); // Small delay to ensure slider events complete
+        });
+        
+        // Also handle touchend for mobile devices
+        slider.addEventListener('touchend', (event) => {
+            console.log('Touch end on slider with value:', event.target.value);
+            const sliderValue = parseInt(event.target.value);
+            handleSliderChange(sliderValue, 'touchend');
+            
+            // Fix focus issue for mobile: blur the slider to allow map to receive touch events immediately
+            setTimeout(() => {
+                slider.blur();
+                const mapCanvas = document.querySelector('#map canvas');
+                if (mapCanvas) {
+                    mapCanvas.focus();
+                }
+            }, 10);
         });
         
         console.log('All event listeners attached. Try moving the slider and watch the console.');
