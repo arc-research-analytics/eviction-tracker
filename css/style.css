@@ -177,4 +177,23 @@ header {
     z-index: 2;
     background: transparent;
     border: none;
-  }
+}
+
+/* ARC Logo positioned beside the legend */
+#arcLogo {
+    position: absolute;
+    bottom: 30px;
+    right: 200px;
+    z-index: 1000;
+    opacity: 0.8;
+}
+
+#arcLogo img {
+    height: 60px;
+    width: auto;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+#arcLogo:hover {
+    opacity: 1;
+}
