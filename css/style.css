@@ -39,6 +39,12 @@ header {
     display: flex;
     justify-content: center;
     align-items: center;
+    opacity: 1;
+    transition: opacity 0.4s ease-out;
+}
+
+.loading-overlay.fade-out {
+    opacity: 0;
 }
 
 .loading-overlay.hidden {
@@ -98,7 +104,7 @@ header {
     z-index: 1000;
     font-weight: bold;
     white-space: nowrap;
-    max-width: 200px;
+    width: auto;
 }
 
 .tooltip-count {
