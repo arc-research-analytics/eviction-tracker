@@ -2,11 +2,14 @@
  * PopupManager - Handles census tract popup creation with historical trend charts
  */
 class PopupManager {
-    constructor(dataLoader) {
+    constructor(dataLoader, mapManager) {
         this.dataLoader = dataLoader;
+        this.mapManager = mapManager;
         this.currentPopup = null;
         this.currentChart = null;
         this.isLoading = false;
+        this.tractCoordinates = null; // Store the tract's geographic coordinates
+        this.mapMoveListener = null; // Store map move event listener
     }
 
     /**
@@ -22,12 +25,18 @@ class PopupManager {
         try {
             this.isLoading = true;
             
+            // Store the geographic coordinates from the click event
+            this.tractCoordinates = clickEvent.lngLat;
+            
             // Create popup element with loading state
             this.currentPopup = this.createPopupElement(tractName);
             document.body.appendChild(this.currentPopup);
             
-            // Position popup based on click location
-            this.positionPopup(clickEvent);
+            // Position popup based on geographic coordinates
+            this.positionPopupByCoordinates();
+            
+            // Set up map move listener to keep popup anchored
+            this.setupMapMoveListener();
             
             // Load historical data
             const historicalData = await this.loadHistoricalData(tractId);
@@ -79,33 +88,61 @@ class PopupManager {
     }
 
     /**
-     * Position popup based on click event
+     * Position popup based on stored geographic coordinates
      */
-    positionPopup(clickEvent) {
-        if (!this.currentPopup || !clickEvent) return;
+    positionPopupByCoordinates() {
+        if (!this.currentPopup || !this.tractCoordinates || !this.mapManager) return;
+        
+        const map = this.mapManager.getMap();
+        if (!map) return;
+        
+        // Convert geographic coordinates to screen coordinates
+        const point = map.project(this.tractCoordinates);
         
         const popup = this.currentPopup;
-        const rect = popup.getBoundingClientRect();
         
-        // Use map container coordinates instead of page coordinates
-        let left = clickEvent.point.x + 15; // Small offset from cursor
-        let top = clickEvent.point.y - 15;
+        // Use calculated screen coordinates with offset
+        let left = point.x + 15; // Small offset from tract center
+        let top = point.y - 15;
         
         // Adjust if popup would go outside viewport
-        if (left + 300 > window.innerWidth) {
-            left = clickEvent.point.x - 315; // Flip to left side
+        if (left + 400 > window.innerWidth) { // Updated for new popup width
+            left = point.x - 415; // Flip to left side
         }
         
-        if (top + 200 > window.innerHeight) {
-            top = clickEvent.point.y - 185; // Flip to above cursor
+        if (top + 220 > window.innerHeight) { // Estimated popup height
+            top = point.y - 205; // Flip to above tract center
         }
         
         // Ensure popup stays within bounds
-        left = Math.max(10, Math.min(left, window.innerWidth - 310));
-        top = Math.max(10, Math.min(top, window.innerHeight - 210));
+        left = Math.max(10, Math.min(left, window.innerWidth - 410));
+        top = Math.max(10, Math.min(top, window.innerHeight - 230));
         
         popup.style.left = left + 'px';
         popup.style.top = top + 'px';
+    }
+
+    /**
+     * Set up map move listener to keep popup anchored to tract location
+     */
+    setupMapMoveListener() {
+        if (!this.mapManager) return;
+        
+        const map = this.mapManager.getMap();
+        if (!map) return;
+        
+        // Remove any existing listener
+        if (this.mapMoveListener) {
+            map.off('move', this.mapMoveListener);
+        }
+        
+        // Create new listener
+        this.mapMoveListener = () => {
+            this.positionPopupByCoordinates();
+        };
+        
+        // Add listener for map move events
+        map.on('move', this.mapMoveListener);
     }
 
     /**
@@ -317,6 +354,18 @@ class PopupManager {
             this.currentPopup.remove();
             this.currentPopup = null;
         }
+        
+        // Remove map move listener
+        if (this.mapMoveListener && this.mapManager) {
+            const map = this.mapManager.getMap();
+            if (map) {
+                map.off('move', this.mapMoveListener);
+            }
+            this.mapMoveListener = null;
+        }
+        
+        // Clear stored coordinates
+        this.tractCoordinates = null;
         
         // Remove outside click listener
         document.removeEventListener('click', this.handleOutsideClick.bind(this), true);
