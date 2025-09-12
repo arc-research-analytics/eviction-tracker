@@ -317,10 +317,18 @@ class MapManager {
             canvas.style.cursor = 'grabbing';
         });
         
-        // When drag ends, restore to grab cursor
-        // The existing tract hover logic will override with pointer when needed
-        this.map.on('dragend', () => {
-            canvas.style.cursor = 'grab';
+        // When drag ends, check what we're over and set appropriate cursor
+        this.map.on('dragend', (e) => {
+            // Get the center point of the map to check what's underneath
+            const center = this.map.getCenter();
+            const centerPoint = this.map.project(center);
+            const features = this.map.queryRenderedFeatures(centerPoint, { layers: ['tract-fills'] });
+            
+            if (features.length > 0) {
+                canvas.style.cursor = 'pointer';
+            } else {
+                canvas.style.cursor = 'grab';
+            }
         });
         
         // Also handle mouse events for immediate feedback
@@ -328,10 +336,31 @@ class MapManager {
             canvas.style.cursor = 'grabbing';
         });
         
-        canvas.addEventListener('mouseup', () => {
-            // Let the existing hover logic determine the right cursor
-            // This will be overridden by tract hover if over a tract
-            canvas.style.cursor = 'grab';
+        canvas.addEventListener('mouseup', (e) => {
+            // After mouse up, check if we're over a tract
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const point = [x, y];
+            
+            const features = this.map.queryRenderedFeatures(point, { layers: ['tract-fills'] });
+            
+            if (features.length > 0) {
+                canvas.style.cursor = 'pointer';
+            } else {
+                canvas.style.cursor = 'grab';
+            }
+        });
+        
+        // Handle general mouse movement over the map (when not over specific tracts)
+        this.map.on('mousemove', (e) => {
+            // Only set grab cursor if we're not currently dragging and not over a tract
+            if (canvas.style.cursor !== 'grabbing') {
+                const features = this.map.queryRenderedFeatures(e.point, { layers: ['tract-fills'] });
+                if (features.length === 0) {
+                    canvas.style.cursor = 'grab';
+                }
+            }
         });
     }
 
