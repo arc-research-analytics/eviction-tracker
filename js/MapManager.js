@@ -7,6 +7,7 @@ class MapManager {
         this.dataLoader = dataLoader;
         this.popupManager = null; // Will be set by app.js after initialization
         this.map = null;
+        this.selectedTractId = null; // Track currently selected tract for dotted border
     }
 
     /**
@@ -17,10 +18,18 @@ class MapManager {
         
         this.map = new mapboxgl.Map({
             container: 'map',
-            style: 'mapbox://styles/mapbox/light-v11',
+            style: 'mapbox://styles/mapbox/streets-v12',
             center: [-84.35, 33.83], 
-            zoom: 8.8
+            zoom: 8.8,
+            minZoom: 5,
+            maxZoom: 16,
+            maxBounds: [
+                [-86.13468104043729, 32.48420711310857],  // Southwest coordinates [lng, lat]
+                [-81.63130485272346, 35.63768859763405]   // Northeast coordinates [lng, lat]
+            ]
+        
         });
+        
 
         // Add Mapbox scale bar
         this.map.addControl(new mapboxgl.ScaleControl({
@@ -98,9 +107,23 @@ class MapManager {
                 type: 'line',
                 source: 'eviction-tracts',
                 paint: {
-                    'line-color': '#000000',  // Black outline on hover
-                    'line-width': 2.5,        // Thicker outline on hover
+                    'line-color': '#969696',  
+                    'line-width': 2,        
                     'line-opacity': 1
+                },
+                filter: ['==', ['get', 'GEOID'], ''] // Initially hide all features
+            });
+
+            // Add selected census tract border layer AFTER hover so it renders on top
+            this.map.addLayer({
+                id: 'tract-borders-selected',
+                type: 'line',
+                source: 'eviction-tracts',
+                paint: {
+                    'line-color': '#000000',     
+                    'line-width': 2.5,             
+                    'line-opacity': 1,
+                    // 'line-dasharray': [2, 2]     
                 },
                 filter: ['==', ['get', 'GEOID'], ''] // Initially hide all features
             });
@@ -159,6 +182,39 @@ class MapManager {
     }
 
     /**
+     * Load and display county mask as a semi-transparent grey filter
+     */
+    async loadCountyMask() {
+        try {
+            const response = await fetch('data/fulton_mask.geojson');
+            if (!response.ok) throw new Error('Failed to fetch county mask');
+            
+            const maskData = await response.json();
+
+            // Add county mask source
+            this.map.addSource('county-mask', {
+                type: 'geojson',
+                data: maskData
+            });
+
+            // Add mask layer with semi-transparent fill
+            this.map.addLayer({
+                id: 'county-mask',
+                type: 'fill',
+                source: 'county-mask',
+                paint: {
+                    'fill-color': '#808080',
+                    'fill-opacity': 0.5 
+                }
+            });
+
+        } catch (error) {
+            console.error('Error loading county mask:', error);
+            throw new Error('Failed to load county mask');
+        }
+    }
+
+    /**
      * Set up map interactions (tooltips, hover effects)
      */
     setupMapInteractions() {
@@ -196,10 +252,14 @@ class MapManager {
         this.map.on('mouseenter', 'tract-fills', (e) => {
             tooltip.style.display = 'block';
             
-            // Show hover border for current feature
+            // Show hover border for current feature (only if not selected)
             const tractId = e.features[0].properties.GEOID;
             hoveredFeatureId = tractId;
-            this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+            
+            // Don't show hover border if this tract is already selected
+            if (tractId !== this.selectedTractId) {
+                this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+            }
             
             // Initialize positions
             tooltipPos.x = e.point.x + 10;
@@ -219,11 +279,14 @@ class MapManager {
             const properties = e.features[0].properties;
             const filings = properties.totalfilings || 0;
             
-            // Update hover border if we've moved to a different tract
+            // Update hover border if we've moved to a different tract (only if not selected)
             const tractId = properties.GEOID;
             if (tractId !== hoveredFeatureId) {
                 hoveredFeatureId = tractId;
-                this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+                // Don't show hover border if this tract is already selected
+                if (tractId !== this.selectedTractId) {
+                    this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+                }
             }
             
             // Get current month in human readable format
@@ -284,6 +347,9 @@ class MapManager {
                 const feature = e.features[0];
                 const tractId = feature.properties.GEOID;
                 const tractName = this.popupManager.getTractName(feature.properties);
+                
+                // Update selected tract border
+                this.setSelectedTract(tractId);
                 
                 // Show popup with historical data
                 this.popupManager.showTractPopup(tractId, tractName, e);
@@ -401,6 +467,37 @@ class MapManager {
             console.error('Error refreshing tract boundaries:', error);
             throw new Error('Failed to refresh tract boundaries');
         }
+    }
+
+    /**
+     * Set the selected tract and show dotted border
+     */
+    setSelectedTract(tractId) {
+        if (!this.map || !this.map.getLayer('tract-borders-selected')) {
+            console.error('Map or selected border layer not available');
+            return;
+        }
+        
+        // Update the selected tract ID
+        this.selectedTractId = tractId;
+        
+        // Show dotted border for the selected tract
+        this.map.setFilter('tract-borders-selected', ['==', ['get', 'GEOID'], tractId]);
+    }
+
+    /**
+     * Clear the selected tract and hide dotted border
+     */
+    clearSelectedTract() {
+        if (!this.map || !this.map.getLayer('tract-borders-selected')) {
+            return;
+        }
+        
+        // Clear the selected tract ID
+        this.selectedTractId = null;
+        
+        // Hide the dotted border
+        this.map.setFilter('tract-borders-selected', ['==', ['get', 'GEOID'], '']);
     }
 
     /**

@@ -61,6 +61,7 @@ class EvictionApp {
             map.on('load', async () => {
                 await this.dataLoader.loadEvictionData();
                 await this.mapManager.loadTractBoundaries();
+                await this.mapManager.loadCountyMask();
                 await this.mapManager.loadCountyOutline();
                 
                 // Update UI components

@@ -19,8 +19,8 @@ class PopupManager {
         // Prevent multiple popups from opening simultaneously
         if (this.isLoading) return;
         
-        // Close existing popup
-        this.closePopup();
+        // Close existing popup without clearing the selected tract
+        this.closePopupOnly();
         
         try {
             this.isLoading = true;
@@ -69,10 +69,10 @@ class PopupManager {
                         <wa-spinner style="font-size: 1.5rem"></wa-spinner>
                         <span>Loading trend data...</span>
                     </div>
-                    <canvas id="trendChart" width="280" height="120"></canvas>
+                    <canvas id="trendChart" width="320" height="120"></canvas>
                 </div>
                 <div class="chart-explanation">
-                    Gray line represents the time period selected by the slider.
+                    Vertical dashed line represents the time period selected by the slider.
                 </div>
             </div>
         `;
@@ -106,8 +106,8 @@ class PopupManager {
         let top = point.y - 15;
         
         // Adjust if popup would go outside viewport
-        if (left + 400 > window.innerWidth) { // Updated for new popup width
-            left = point.x - 415; // Flip to left side
+        if (left + 460 > window.innerWidth) { // Updated for new popup width
+            left = point.x - 475; // Flip to left side
         }
         
         if (top + 220 > window.innerHeight) { // Estimated popup height
@@ -115,7 +115,7 @@ class PopupManager {
         }
         
         // Ensure popup stays within bounds
-        left = Math.max(10, Math.min(left, window.innerWidth - 410));
+        left = Math.max(10, Math.min(left, window.innerWidth - 470));
         top = Math.max(10, Math.min(top, window.innerHeight - 230));
         
         popup.style.left = left + 'px';
@@ -261,6 +261,11 @@ class PopupManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        right: 20 // Add right padding to balance the y-axis title
+                    }
+                },
                 plugins: {
                     legend: {
                         display: false
@@ -288,8 +293,23 @@ class PopupManager {
                         display: false // Hide x-axis for sparkline look
                     },
                     y: {
-                        display: false, // Hide y-axis for sparkline look
-                        beginAtZero: true
+                        title: {
+                            display: true,
+                            text: 'Evictions'
+                        },
+                        display: true,
+                        beginAtZero: true,
+                        grid: {
+                            display: false // Hide grid lines for cleaner look
+                        },
+                        ticks: {
+                            font: {
+                                size: 10 // Small but legible font size
+                            },
+                            color: '#666666',
+                            maxTicksLimit: 4, // Limit to max 4 ticks to prevent crowding
+                            padding: 5
+                        }
                     }
                 },
                 interaction: {
@@ -342,9 +362,21 @@ class PopupManager {
     }
 
     /**
-     * Close current popup
+     * Close current popup and clear selected tract
      */
     closePopup() {
+        this.closePopupOnly();
+        
+        // Clear selected tract border when popup closes
+        if (this.mapManager && this.mapManager.clearSelectedTract) {
+            this.mapManager.clearSelectedTract();
+        }
+    }
+
+    /**
+     * Close only the popup without clearing the selected tract
+     */
+    closePopupOnly() {
         if (this.currentChart) {
             this.currentChart.destroy();
             this.currentChart = null;

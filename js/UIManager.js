@@ -88,7 +88,7 @@ class UIManager {
             monthText.style.display = 'none';
             
             // Show combined format in the total text element
-            totalText.innerHTML = `Total evictions in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
+            totalText.innerHTML = `Fulton County evictions<br/> in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
         }
     }
 
