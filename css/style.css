@@ -110,13 +110,13 @@ header {
 
 .tooltip-count {
     display: block;
-    font-size: 14px;
+    font-size: 15px;
     margin-bottom: 2px;
 }
 
 .tooltip-hint {
     display: block;
-    font-size: 11px;
+    font-size: 14px;
     opacity: 0.8;
     font-weight: normal;
 }
