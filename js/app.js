@@ -29,11 +29,8 @@ class EvictionApp {
             // Initialize MapManager first
             this.mapManager = new MapManager(CONFIG, this.dataLoader);
             
-            // Then initialize PopupManager with MapManager reference
+            // Initialize PopupManager with MapManager reference (but don't set it up yet)
             this.popupManager = new PopupManager(this.dataLoader, this.mapManager);
-            
-            // Update MapManager with PopupManager reference
-            this.mapManager.popupManager = this.popupManager;
 
             // Respect initial slider value from DOM before first load
             const sliderEl = document.getElementById('monthSlider');
@@ -51,8 +48,8 @@ class EvictionApp {
             // Update the slider label early so the UI matches the chosen start month
             this.uiManager.updateSliderLabel(initialIndex);
 
-            // Start loading process
-            this.uiManager.showLoading();
+            // Start loading process (show immediately for initial load)
+            this.uiManager.showLoading(true);
 
             // Initialize map
             const map = this.mapManager.initializeMap();
@@ -63,6 +60,9 @@ class EvictionApp {
                 await this.mapManager.loadTractBoundaries();
                 await this.mapManager.loadCountyMask();
                 await this.mapManager.loadCountyOutline();
+                
+                // Now that tract layers are loaded, set up interactions
+                this.mapManager.setPopupManager(this.popupManager);
                 
                 // Update UI components
                 this.uiManager.updateMonthDisplay();
@@ -86,32 +86,29 @@ class EvictionApp {
      * Set up slider functionality and event handling
      */
     setupSliderFunctionality() {
-        // Determine initial slider index from DOM, fallback to current (latest) month
+        // No need to re-initialize - respect what was already set in initializeApp()
         const slider = document.getElementById('monthSlider');
-        let initialIndex = this.dataLoader.getMonthUtils().getCurrentMonthIndex();
-        if (slider && slider.value !== undefined && slider.value !== null && slider.value !== '') {
-            const parsed = parseInt(slider.value, 10);
-            if (!Number.isNaN(parsed)) {
-                initialIndex = parsed;
-            }
+        
+        // Use current data loader month (which was set from HTML value during initialization)
+        const currentDbMonth = this.dataLoader.getCurrentMonth();
+        const currentIndex = this.dataLoader.getMonthUtils().dbMonthToSliderIndex(currentDbMonth);
+        
+        // Ensure the slider control matches the current state
+        if (slider && currentIndex !== -1) {
+            slider.value = currentIndex;
         }
 
-        // Ensure the control reflects the initial index
-        if (slider) {
-            slider.value = initialIndex;
-        }
-
-        // Initialize slider label with the chosen initial month
-        this.uiManager.updateSliderLabel(initialIndex);
+        // Update slider label to match current month
+        this.uiManager.updateSliderLabel(currentIndex);
         
         // Set up the slider event listener with callback
         this.uiManager.setupSliderListener(async (sliderIndex) => {
             
             try {
-                // Show loading for longer operations (but not for immediate updates)
+                // Show loading for longer operations (immediate for user interactions)
                 const isCurrentMonth = sliderIndex === this.dataLoader.getMonthUtils().getCurrentMonthIndex();
                 if (!isCurrentMonth) {
-                    this.uiManager.showLoading();
+                    this.uiManager.showLoading(true);
                 }
                 
                 
