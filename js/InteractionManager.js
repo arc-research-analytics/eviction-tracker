@@ -124,7 +124,7 @@ class InteractionManager {
         
         return `
             <span class="tooltip-count">${monthYear} evictions: ${filings}</span>
-            <span class="tooltip-hint">Click for historic trends</span>
+            <span class="tooltip-hint"><i>Click for historic trends</i></span>
         `;
     }
 

@@ -88,7 +88,7 @@ class UIManager {
             monthText.style.display = 'none';
             
             // Show combined format in the total text element
-            totalText.innerHTML = `Fulton County evictions<br/> in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
+            totalText.innerHTML = `Countywide evictions<br/> in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
         }
     }
 
@@ -99,7 +99,7 @@ class UIManager {
         const legend = document.createElement('div');
         legend.className = 'legend';
         legend.innerHTML = `
-            <h4>Eviction Filings</h4>
+            <h4 style="text-align: center;">Eviction Filings<br/>by Census Tract</h4>
             <div class="legend-item">
                 <div class="legend-color" style="background-color: #ffffcc;"></div>
                 <span>0</span>
