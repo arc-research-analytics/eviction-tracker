@@ -8,6 +8,9 @@ class EvictionApp {
         this.mapManager = null;
         this.uiManager = null;
         this.popupManager = null;
+        this.tooltipManager = null;
+        this.mapTooltipHandler = null;
+        this.countyTrends = null;
         this.initializeApp();
     }
 
@@ -25,6 +28,7 @@ class EvictionApp {
             // Initialize modules with dependencies
             this.dataLoader = new DataLoader(this.supabase);
             this.uiManager = new UIManager(this.dataLoader);
+            this.countyTrends = new CountyTrends(this.dataLoader, this.supabase);
             
             // Initialize MapManager first
             this.mapManager = new MapManager(CONFIG, this.dataLoader);
@@ -63,6 +67,9 @@ class EvictionApp {
                 
                 // Now that tract layers are loaded, set up interactions
                 this.mapManager.setPopupManager(this.popupManager);
+                
+                // Initialize map tooltip handler
+                this.initializeMapTooltipHandler();
                 
                 // Update UI components
                 this.uiManager.updateMonthDisplay();
@@ -127,6 +134,11 @@ class EvictionApp {
                     this.popupManager.updateVerticalLine();
                 }
                 
+                // Update county trends vertical line if drawer is open
+                if (this.countyTrends) {
+                    this.countyTrends.updateVerticalLine();
+                }
+                
                 // Hide loading
                 this.uiManager.hideLoading();
                 
@@ -144,6 +156,31 @@ class EvictionApp {
             return this.dataLoader.getMonthUtils().sliderIndexToHumanReadable(index);
         };
         
+    }
+
+    /**
+     * Initialize map tooltip handler after map layers are loaded
+     */
+    initializeMapTooltipHandler() {
+        if (!this.mapManager || !this.mapManager.getMap()) {
+            console.error('MapManager or map not available for tooltip handler initialization');
+            return;
+        }
+
+        // Get the tooltip manager from MapManager
+        const tooltipManager = this.mapManager.getTooltipManager();
+        const map = this.mapManager.getMap();
+        const censusLayerId = 'tract-fills';
+
+        if (!tooltipManager) {
+            console.error('TooltipManager not available from MapManager');
+            return;
+        }
+
+        // Initialize the map tooltip handler
+        this.mapTooltipHandler = new MapTooltipHandler(map, tooltipManager, censusLayerId);
+        
+        console.log('MapTooltipHandler initialized successfully');
     }
 
     /**
@@ -172,6 +209,13 @@ class EvictionApp {
      */
     getPopupManager() {
         return this.popupManager;
+    }
+
+    /**
+     * Get reference to county trends manager
+     */
+    getCountyTrends() {
+        return this.countyTrends;
     }
 }
 

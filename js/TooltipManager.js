@@ -12,6 +12,7 @@ class TooltipManager {
         this.createTooltip();
     }
 
+
     /**
      * Create the tooltip DOM element and add it to the page
      */
@@ -30,13 +31,20 @@ class TooltipManager {
         this.tooltip.style.display = 'block';
         this.isVisible = true;
         
-        // Initialize positions
-        this.tooltipPos.x = x;
-        this.tooltipPos.y = y;
-        this.targetPos.x = x;
-        this.targetPos.y = y;
+        // Calculate optimal position first
+        const position = this.calculateOptimalPosition(x, y);
         
-        // Start smooth animation
+        // Initialize positions with fresh coordinates
+        this.tooltipPos.x = position.x;
+        this.tooltipPos.y = position.y;
+        this.targetPos.x = position.x;
+        this.targetPos.y = position.y;
+        
+        // Set initial position immediately to avoid animation from old position
+        this.tooltip.style.left = position.x + 'px';
+        this.tooltip.style.top = position.y + 'px';
+        
+        // Start smooth animation for future movements
         this.startAnimation();
     }
 
@@ -50,6 +58,19 @@ class TooltipManager {
         }
         
         this.stopAnimation();
+        
+        // Clear position state to prevent stale data
+        this.clearPositionState();
+    }
+
+    /**
+     * Clear position state to prevent stale coordinates
+     */
+    clearPositionState() {
+        this.tooltipPos.x = 0;
+        this.tooltipPos.y = 0;
+        this.targetPos.x = 0;
+        this.targetPos.y = 0;
     }
 
     /**

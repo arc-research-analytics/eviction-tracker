@@ -60,7 +60,7 @@ class PopupManager {
         popup.className = 'tract-popup';
         popup.innerHTML = `
             <div class="popup-header">
-                <h3 class="tract-name">${tractName || 'Census Tract'}</h3>
+                <h3 class="tract-name">Monthly Filings in ${tractName || 'Census Tract'}</h3>
                 <button class="popup-close" type="button">&times;</button>
             </div>
             <div class="popup-content">
@@ -213,29 +213,46 @@ class PopupManager {
         
         const ctx = canvas.getContext('2d');
         
-        // Create custom plugin for vertical line
+        // Create custom plugin for vertical lines (static + hover crosshair)
         const popupManager = this; // Reference to this instance for closure
         const verticalLinePlugin = {
             id: 'verticalLine',
             afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                const chartArea = chart.chartArea;
+                const xScale = chart.scales.x;
+                
+                // Draw static vertical line for current month (dashed)
                 if (popupManager.currentMonthIndex >= 0) {
-                    const ctx = chart.ctx;
-                    const chartArea = chart.chartArea;
-                    const xScale = chart.scales.x;
-                    
-                    // Calculate x position for the current month
                     const xPos = xScale.getPixelForValue(popupManager.currentMonthIndex);
                     
-                    // Draw vertical line
                     ctx.save();
                     ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
                     ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 5]); // Dashed line
+                    ctx.setLineDash([5, 5]); // Dashed line for current month
                     ctx.beginPath();
                     ctx.moveTo(xPos, chartArea.top);
                     ctx.lineTo(xPos, chartArea.bottom);
                     ctx.stroke();
                     ctx.restore();
+                }
+                
+                // Draw dynamic hover crosshair (solid line)
+                if (chart.tooltip && chart.tooltip.opacity > 0) {
+                    const activeElements = chart.tooltip.dataPoints;
+                    if (activeElements && activeElements.length > 0) {
+                        const xPos = activeElements[0].element.x;
+                        
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; // Light black for hover line
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([]); // Solid line for hover
+                        ctx.beginPath();
+                        ctx.moveTo(xPos, chartArea.top);
+                        ctx.lineTo(xPos, chartArea.bottom);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 }
             }
         };
@@ -315,6 +332,10 @@ class PopupManager {
                 interaction: {
                     intersect: false,
                     mode: 'index'
+                },
+                hover: {
+                    mode: 'index',
+                    intersect: false
                 }
             },
             plugins: [verticalLinePlugin]
