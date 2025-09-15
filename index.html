@@ -51,6 +51,11 @@
     <div id="monthDisplay">
       <div id="monthText">Loading</div>
       <div id="totalText">and calculating total...</div>
+
+      <!-- insert a button that says "Show County Trends" that exposes a Web Awesome drawer that opens from the top -->
+      <wa-button id="countyTrendsBtn" variant="neutral">
+        Show County Trends
+      </wa-button>
     </div>
 
     <!-- Full-screen loading overlay -->
@@ -108,6 +113,35 @@
       >
     </wa-dialog>
 
+    <!-- County Trends drawer (slides in from top) -->
+    <wa-drawer
+      label="Monthly County Eviction Filings"
+      placement="top"
+      id="countyTrendsDrawer"
+      class="county-trends-drawer"
+      style="--size: 85vh"
+    >
+      <div class="county-trends-content">
+        <div class="county-chart-container">
+          <canvas id="countyTrendsChart"></canvas>
+          <!-- insert text below the chart explaining the grey vertical line -->
+          <div class="chart-explanation">
+            <p style="font-size: 16px">
+              Vertical dashed line represents the time period selected by the
+              slider.
+            </p>
+          </div>
+        </div>
+        <div id="chartLoadingIndicator" class="chart-loading hidden">
+          <wa-spinner style="font-size: 4rem"></wa-spinner>
+          <span>Loading chart data...</span>
+        </div>
+      </div>
+      <wa-button slot="footer" variant="brand" data-drawer="close"
+        >Close</wa-button
+      >
+    </wa-drawer>
+
     <!-- Load config based on environment -->
     <script>
       const isDevelopment =
@@ -124,10 +158,12 @@
           "js/UIManager.js",
           "js/PopupManager.js",
           "js/TooltipManager.js",
+          "js/CountyTrends.js",
           "js/LayerManager.js",
           "js/CursorManager.js",
           "js/InteractionManager.js",
           "js/MapManager.js",
+          "js/MapTooltipHandler.js",
           "js/app.js",
         ];
 

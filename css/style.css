@@ -133,7 +133,7 @@ header {
     border: none;
     z-index: 1000;
     text-align: center;
-    min-width: 140px;
+    width: 250px;
 }
 
 #monthText {
@@ -195,6 +195,25 @@ header {
     color: rgba(255, 255, 255, 0.9);
 }
 
+/* adjust font style of county trends button */
+#countyTrendsBtn {
+    margin-top: 8px;
+}
+
+#countyTrendsBtn::part(base) {
+    color: #252525;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #252525;
+    border-radius: 5px;
+    font-weight: 900;
+    font-size: 13px;
+}
+
+#countyTrendsBtn::part(base):hover {
+    background-color: #252525;
+    color: rgba(255, 255, 255, 0.9);
+}
+
 /* ARC Logo positioned beside the legend */
 #arcLogo {
     position: absolute;
@@ -231,7 +250,7 @@ header {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(0, 0, 0, 0.1);
     z-index: 2000;
-    width: 460px;
+    width: 550px; /* Increased from 460px for better chart visibility */
     font-family: 'Arial', sans-serif;
     backdrop-filter: blur(5px);
 }
@@ -278,10 +297,12 @@ header {
     padding: 15px;
 }
 
+/* Chart container for individual census tract popups (when clicking on tracts) */
 .chart-container {
     position: relative;
-    height: 120px;
+    height: 160px; /* Increased from 120px for better trend visibility */
     width: 100%;
+    margin-bottom: 10px;
 }
 
 .loading-chart {
@@ -307,6 +328,59 @@ header {
     color: #666;
     text-align: center;
     font-style: italic;
+}
+
+/* County Trends Drawer Styles */
+.county-trends-drawer {
+    --width: 90vw;
+    max-width: 1200px;
+    /* Height is controlled by --size property in HTML */
+}
+
+.county-trends-content {
+    padding: 5px;
+    height: calc(100% - 60px); /* Use 100% of drawer height minus header/footer */
+    overflow: hidden; /* Eliminate scroll bars */
+    display: block; /* Remove flexbox to eliminate extra spacing */
+}
+
+/* Chart container specifically for county-wide trends drawer (when clicking "Show County Trends") */
+.county-chart-container {
+    position: relative;
+    height: calc(100% - 30px); /* Fill most of the available content space */
+    width: 100%;
+    min-height: 400px; /* Ensure good readability */
+    max-height: calc(100% - 30px); /* Prevent overflow */
+}
+
+.chart-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px; /* Minimize padding for county trends */
+    color: #666;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center the loading indicator */
+}
+
+.chart-loading.hidden {
+    display: none;
+}
+
+.chart-loading span {
+    font-size: 14px; /* Slightly smaller text */
+}
+
+/* Ensure county trends chart canvas fills container completely */
+#countyTrendsChart {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0;
+    padding: 0;
 }
 
 .mapboxgl-ctrl-attrib-inner {
