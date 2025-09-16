@@ -5,5 +5,9 @@ const CONFIG = {
     },
     mapbox: {
         accessToken: 'pk.eyJ1Ijoid3dyaWdodDIxIiwiYSI6ImNtZmZweTc2ZjBnbGEyeHB3dmRqZGg4dHcifQ.AU-tVnuPpaoQP2icjuFqkg',
+    },
+    dateRange: {
+        START_DATE: '20-01',  // January 2020
+        MAX_DATE: '25-05'
     }
 };
