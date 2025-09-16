@@ -27,6 +27,10 @@ class EvictionApp {
 
             // Initialize modules with dependencies
             this.dataLoader = new DataLoader(this.supabase);
+            
+            // Initialize available months from database first
+            await this.dataLoader.initializeAvailableMonths();
+            
             this.uiManager = new UIManager(this.dataLoader);
             this.countyTrends = new CountyTrends(this.dataLoader, this.supabase);
             
@@ -60,10 +64,23 @@ class EvictionApp {
             
             // Load data when map is ready
             map.on('load', async () => {
-                await this.dataLoader.loadEvictionData();
-                await this.mapManager.loadTractBoundaries();
-                await this.mapManager.loadCountyMask();
-                await this.mapManager.loadCountyOutline();
+                try {
+                    // Make sure we have months available before loading data
+                    if (this.dataLoader.getMonthUtils().getAllMonths().length === 0) {
+                        console.warn('App: No months available, retrying initialization...');
+                        await this.dataLoader.initializeAvailableMonths();
+                    }
+
+                    await this.dataLoader.loadEvictionData();
+                    await this.mapManager.loadTractBoundaries();
+                    await this.mapManager.loadCountyMask();
+                    await this.mapManager.loadCountyOutline();
+                } catch (error) {
+                    console.error('App: Error loading map data:', error);
+                    this.uiManager.hideLoading();
+                    this.uiManager.showError('Failed to load map data');
+                    return;
+                }
                 
                 // Now that tract layers are loaded, set up interactions
                 this.mapManager.setPopupManager(this.popupManager);
@@ -93,17 +110,25 @@ class EvictionApp {
      * Set up slider functionality and event handling
      */
     setupSliderFunctionality() {
-        // No need to re-initialize - respect what was already set in initializeApp()
         const slider = document.getElementById('monthSlider');
-        
+        const monthUtils = this.dataLoader.getMonthUtils();
+
+        if (slider) {
+            // Dynamically set slider range based on configured date range
+            const totalMonths = monthUtils.getTotalMonths();
+            const currentIndex = monthUtils.getCurrentMonthIndex();
+
+            // Update slider attributes
+            slider.setAttribute('max', totalMonths - 1);  // 0-based indexing
+            slider.setAttribute('value', currentIndex);
+            slider.value = currentIndex;
+
+            console.log(`Slider configured: max=${totalMonths - 1}, current=${currentIndex}`);
+        }
+
         // Use current data loader month (which was set from HTML value during initialization)
         const currentDbMonth = this.dataLoader.getCurrentMonth();
         const currentIndex = this.dataLoader.getMonthUtils().dbMonthToSliderIndex(currentDbMonth);
-        
-        // Ensure the slider control matches the current state
-        if (slider && currentIndex !== -1) {
-            slider.value = currentIndex;
-        }
 
         // Update slider label to match current month
         this.uiManager.updateSliderLabel(currentIndex);
@@ -154,6 +179,106 @@ class EvictionApp {
         window.testSlider = (index) => {
             this.uiManager.updateSliderLabel(index);
             return this.dataLoader.getMonthUtils().sliderIndexToHumanReadable(index);
+        };
+        
+        // Add data loading comparison helper to global scope 
+        window.debugDataLoading = async (month) => {
+            console.log(`Testing data loading methods for month: ${month}`);
+            return await this.dataLoader.debugCompareLoadingMethods(month);
+        };
+        
+        // Add helper to check what data is currently loaded on the map
+        window.checkCurrentMapData = () => {
+            const currentMonth = this.dataLoader.getCurrentMonth();
+            const evictionData = this.dataLoader.getEvictionData();
+            const total = this.dataLoader.calculateTotalEvictions();
+            console.log(`Current map month: ${currentMonth}`);
+            console.log(`Total evictions displayed: ${total}`);
+            console.log(`Number of tracts with data: ${Object.keys(evictionData).length}`);
+            return { month: currentMonth, total, tractCount: Object.keys(evictionData).length };
+        };
+
+        // Simple RLS test function
+        window.testRLS = async () => {
+            console.log('=== TESTING ROW LEVEL SECURITY ===');
+            
+            // Direct table access test
+            const monthTest = await this.supabase.from('month-summary').select('*').limit(1);
+            const tractTest = await this.supabase.from('tract-summary').select('*').limit(1);
+            
+            console.log('Direct month-summary test:', monthTest);
+            console.log('Direct tract-summary test:', tractTest);
+            
+            if (monthTest.error) {
+                console.error('❌ month-summary blocked:', monthTest.error.message);
+            } else {
+                console.log('✅ month-summary accessible:', monthTest.data?.length, 'rows');
+            }
+            
+            if (tractTest.error) {
+                console.error('❌ tract-summary blocked:', tractTest.error.message);
+            } else {
+                console.log('✅ tract-summary accessible:', tractTest.data?.length, 'rows');
+            }
+        };
+
+        // Add database test function for troubleshooting
+        window.testDatabase = async () => {
+            console.log('=== DATABASE CONNECTION TEST ===');
+            
+            try {
+                // Test 1: Direct queries to both tables
+                console.log('Test 1: Querying month-summary...');
+                const monthTest = await this.supabase
+                    .from('month-summary')
+                    .select('filemonth, totalfilings')
+                    .limit(5);
+                
+                console.log('month-summary result:', monthTest);
+                
+                console.log('Test 2: Querying tract-summary...');
+                const tractTest = await this.supabase
+                    .from('tract-summary')
+                    .select('tractid, filemonth, totalfilings')
+                    .limit(5);
+                    
+                console.log('tract-summary result:', tractTest);
+                
+                // Test 3: Check what months are available
+                console.log('Test 3: Available months in each table...');
+                const [monthMonths, tractMonths] = await Promise.all([
+                    this.supabase.from('month-summary').select('filemonth').limit(100),
+                    this.supabase.from('tract-summary').select('filemonth').limit(100)
+                ]);
+                
+                const uniqueMonthMonths = [...new Set(monthMonths.data?.map(d => d.filemonth) || [])];
+                const uniqueTractMonths = [...new Set(tractMonths.data?.map(d => d.filemonth) || [])];
+                
+                console.log('Available months in month-summary:', uniqueMonthMonths.slice(0, 10));
+                console.log('Available months in tract-summary:', uniqueTractMonths.slice(0, 10));
+                
+                // Test 4: Current app month vs available months
+                const currentMonth = this.dataLoader.getCurrentMonth();
+                const supabaseFormat = this.dataLoader.getMonthUtils().convertToSupabaseFormat(currentMonth);
+                
+                console.log('App current month (internal):', currentMonth);
+                console.log('App current month (Supabase format):', supabaseFormat);
+                console.log('Is current month in month-summary?', uniqueMonthMonths.includes(supabaseFormat));
+                console.log('Is current month in tract-summary?', uniqueTractMonths.includes(supabaseFormat));
+                
+                return {
+                    monthSummaryRows: monthTest.data?.length || 0,
+                    tractSummaryRows: tractTest.data?.length || 0,
+                    monthSummaryError: monthTest.error,
+                    tractSummaryError: tractTest.error,
+                    availableMonths: { monthSummary: uniqueMonthMonths, tractSummary: uniqueTractMonths },
+                    currentMonth: { internal: currentMonth, supabase: supabaseFormat }
+                };
+                
+            } catch (error) {
+                console.error('Database test failed:', error);
+                return { error: error.message };
+            }
         };
         
     }

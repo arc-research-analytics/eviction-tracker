@@ -98,7 +98,7 @@ class CountyTrends {
   }
 
   /**
-   * Load county trends data for all available months
+   * Load county trends data from the month-summary table
    */
   async loadTrendsData() {
     if (!this.dataLoader || !this.supabase) {
@@ -112,69 +112,58 @@ class CountyTrends {
 
       const monthUtils = this.dataLoader.getMonthUtils();
       const allMonths = monthUtils.getAllMonths();
-      
-      console.log('CountyTrends: Loading data for', allMonths.length, 'months');
 
-      // Try to load all data, with fallback to pagination if needed
-      console.log('CountyTrends: Attempting to load all data...');
-      
-      let allData = [];
-      let totalCount = 0;
-      
-      try {
-        // First attempt: try to get all data with high limit
-        const { data: bulkData, error, count } = await this.supabase
-          .from('eviction-test')
-          .select('tractid, totalfilings, filemonth', { count: 'exact' })
-          .limit(50000);
+      console.log('CountyTrends: Loading data for', allMonths.length, 'available months');
+      console.log('CountyTrends: Month range:', allMonths[0] || 'none', 'to', allMonths[allMonths.length - 1] || 'none');
 
-        if (error) throw error;
-        
-        totalCount = count || 0;
-        console.log('CountyTrends: Bulk query returned', bulkData?.length || 0, 'records out of', totalCount, 'total records');
-        
-        // If we got all the data, use it
-        if (bulkData && (!count || bulkData.length >= count)) {
-          allData = bulkData;
-          console.log('CountyTrends: Successfully loaded all data in single query');
-        } else {
-          // Otherwise, fall back to pagination
-          console.log('CountyTrends: Falling back to paginated queries...');
-          allData = await this.loadDataWithPagination(totalCount);
-        }
-        
-      } catch (error) {
-        console.error('CountyTrends: Error with bulk query, trying pagination:', error);
-        // Get count first
-        const { count } = await this.supabase
-          .from('eviction-test')
-          .select('*', { count: 'exact', head: true });
-        
-        totalCount = count || 0;
-        allData = await this.loadDataWithPagination(totalCount);
+      // Load data from month-summary table for available months (respects MAX_DATE filter)
+      console.log('CountyTrends: Querying month-summary table for available months...');
+      const availableMonths = monthUtils.getAllMonthsSupabaseFormat();
+      console.log('CountyTrends: Available months after MAX_DATE filter:', availableMonths.length);
+      
+      const { data, error } = await this.supabase
+        .from('month-summary')
+        .select('filemonth, totalfilings')
+        .in('filemonth', availableMonths);
+
+      console.log('CountyTrends: Raw query result:', { 
+        data: data?.length, 
+        error, 
+        firstFewRows: data?.slice(0, 5),
+        sampleMonths: data?.map(d => d.filemonth).slice(0, 10)
+      });
+
+      if (error) {
+        console.error('CountyTrends: Supabase error:', error);
+        throw error;
       }
 
-      console.log('CountyTrends: Final result -', allData.length, 'records loaded out of', totalCount, 'total');
+      console.log('CountyTrends: Loaded', data?.length || 0, 'monthly records from month-summary table');
+
+      if (!data || data.length === 0) {
+        console.warn('CountyTrends: No data was loaded from month-summary table!');
+        console.log('CountyTrends: Expected months:', allMonths.slice(0, 5), '...', allMonths.slice(-5));
+      }
 
       // Debug: Check what months are actually in the data
-      const uniqueMonths = [...new Set(allData?.map(record => record.filemonth) || [])].sort();
-      console.log('CountyTrends: Found data for', uniqueMonths.length, 'unique months');
-      console.log('CountyTrends: Month range:', uniqueMonths[0], 'to', uniqueMonths[uniqueMonths.length - 1]);
+      const uniqueMonths = [...new Set(data?.map(record => record.filemonth) || [])];
+      console.log('CountyTrends: Found data for', uniqueMonths.length, 'unique months:', uniqueMonths.slice(0, 10));
 
-      // Group data by month and calculate totals in JavaScript
+      // Create lookup object for faster access
+      // Convert Supabase format to internal format for lookup
       const monthTotals = {};
-      
-      if (allData) {
-        allData.forEach(record => {
-          const month = record.filemonth;
-          if (!monthTotals[month]) {
-            monthTotals[month] = 0;
-          }
-          monthTotals[month] += record.totalfilings || 0;
+      if (data) {
+        data.forEach(record => {
+          // Convert YYYY-M format to YY-MM format for internal consistency
+          const internalFormat = monthUtils.convertFromSupabaseFormat(record.filemonth);
+          monthTotals[internalFormat] = record.totalfilings || 0;
         });
       }
 
-      // Create monthly totals array in correct order
+      console.log('CountyTrends: Monthly data indexed:', Object.keys(monthTotals).length, 'months with data');
+
+      // Create monthly totals array in configured chronological order
+      // This handles the sorting issue by using our configured month order instead of string sorting
       const monthlyTotals = allMonths.map(month => ({
         month: month,
         total: monthTotals[month] || 0,
@@ -183,10 +172,12 @@ class CountyTrends {
 
       // Debug: Show key statistics
       const nonZeroMonths = monthlyTotals.filter(m => m.total > 0).length;
+      const totalEvictions = monthlyTotals.reduce((sum, m) => sum + m.total, 0);
       console.log('CountyTrends: Processed', nonZeroMonths, 'months with data out of', monthlyTotals.length, 'total months');
+      console.log('CountyTrends: Total evictions across all months:', totalEvictions);
 
       this.monthlyData = monthlyTotals;
-      console.log('CountyTrends: Loaded data for', monthlyTotals.length, 'months');
+      console.log('CountyTrends: Final monthly data prepared for chart');
 
       // Hide loading indicator and render chart
       this.hideLoading();
@@ -312,7 +303,7 @@ class CountyTrends {
                 callback: function(value, index, ticks) {
                   const label = this.getLabelForValue(value);
                   // Show every 6th label (every 6 months) plus first/last
-                  if (index === 0 || index === ticks.length - 1 || index % 6 === 0) {
+                  if (index === 0 || index === ticks.length - 1 || index % 4 === 0) {
                     return label;
                   }
                   return '';
@@ -408,47 +399,6 @@ class CountyTrends {
     // TODO: Could implement a user-facing error display here
   }
 
-  /**
-   * Load data using pagination to work around row limits
-   */
-  async loadDataWithPagination(totalCount) {
-    const pageSize = 1000; // Use the max we know works
-    const totalPages = Math.ceil(totalCount / pageSize);
-    let allData = [];
-    
-    console.log('CountyTrends: Loading data in', totalPages, 'pages of', pageSize, 'records each');
-    
-    for (let page = 0; page < totalPages; page++) {
-      const rangeStart = page * pageSize;
-      const rangeEnd = rangeStart + pageSize - 1;
-      
-      console.log(`CountyTrends: Loading page ${page + 1}/${totalPages} (records ${rangeStart}-${rangeEnd})`);
-      
-      try {
-        const { data: pageData, error } = await this.supabase
-          .from('eviction-test')
-          .select('tractid, totalfilings, filemonth')
-          .range(rangeStart, rangeEnd);
-
-        if (error) throw error;
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData);
-          console.log(`CountyTrends: Page ${page + 1} loaded ${pageData.length} records (total: ${allData.length})`);
-        } else {
-          console.log(`CountyTrends: Page ${page + 1} returned no data, stopping pagination`);
-          break;
-        }
-        
-      } catch (error) {
-        console.error(`CountyTrends: Error loading page ${page + 1}:`, error);
-        // Continue with other pages rather than failing completely
-      }
-    }
-    
-    console.log('CountyTrends: Pagination complete -', allData.length, 'total records loaded');
-    return allData;
-  }
 
   /**
    * Update the vertical line position when slider changes (matches census tract functionality)

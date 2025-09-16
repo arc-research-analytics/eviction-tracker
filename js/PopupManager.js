@@ -151,7 +151,7 @@ class PopupManager {
     async loadHistoricalData(tractId) {
         try {
             const { data, error } = await this.dataLoader.supabase
-                .from('eviction-test')
+                .from('tract-summary')
                 .select('filemonth, totalfilings')
                 .eq('tractid', tractId)
                 .order('filemonth', { ascending: true });
