@@ -91,6 +91,9 @@ class MonthUtils {
                 : null;
                 
             if (configMaxDate) {
+                console.log(`MonthUtils: Applying MAX_DATE filter: ${configMaxDate} (format: YYYY-MM)`);
+                console.log(`MonthUtils: Sample database months:`, internalMonths.slice(0, 3), '...', internalMonths.slice(-3));
+                
                 const maxDateNum = this.parseMonthForComparison(configMaxDate);
                 const originalCount = internalMonths.length;
                 
@@ -102,6 +105,8 @@ class MonthUtils {
                 const filteredCount = originalCount - internalMonths.length;
                 if (filteredCount > 0) {
                     console.log(`MonthUtils: Filtered out ${filteredCount} months beyond MAX_DATE ${configMaxDate}`);
+                } else {
+                    console.log(`MonthUtils: All ${originalCount} months are within MAX_DATE limit`);
                 }
             }
 
