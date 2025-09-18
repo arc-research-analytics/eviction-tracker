@@ -79,6 +79,11 @@
       <div id="sliderLabel">May 2025</div>
     </div>
 
+    <!-- Toggle container positioned above legend -->
+    <div id="toggleContainer">
+      <wa-switch id="showRateSwitch" checked>Show as rate</wa-switch>
+    </div>
+
     <!-- About button anchored bottom-left -->
     <wa-button id="aboutBtn" variant="neutral">
       <wa-icon name="info-circle"></wa-icon> About
@@ -115,7 +120,7 @@
 
     <!-- County Trends drawer (slides in from top) -->
     <wa-drawer
-      label="Monthly County Eviction Filings"
+      label="Monthly County Eviction Filings - Raw Count"
       placement="top"
       id="countyTrendsDrawer"
       class="county-trends-drawer"

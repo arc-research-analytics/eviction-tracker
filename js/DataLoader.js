@@ -8,6 +8,8 @@ class DataLoader {
         this.monthUtils = new MonthUtils();
         // Default month will be set after loading available months
         this.currentMonth = null;
+        // Display mode: 'count' for raw evictions, 'rate' for filing rates
+        this.displayMode = 'rate'; // Default to showing rates
     }
 
     /**
@@ -34,7 +36,7 @@ class DataLoader {
             console.log('DataLoader: Querying tract-summary with month:', supabaseMonth);
             const { data, error } = await this.supabase
                 .from('tract-summary')
-                .select('tractid, totalfilings, filemonth')
+                .select('tractid, totalfilings, filing-rate, filemonth')
                 .eq('filemonth', supabaseMonth);
 
             console.log('DataLoader: Raw query result:', { 
@@ -53,11 +55,14 @@ class DataLoader {
             const totalForMonth = data ? data.reduce((sum, item) => sum + (item.totalfilings || 0), 0) : 0;
             console.log(`DataLoader.loadEvictionData(): Loaded ${data?.length || 0} records for ${this.currentMonth}, total evictions: ${totalForMonth}`);
 
-            // Create lookup object
+            // Create lookup object with both filing counts and rates
             this.evictionData = {};
             if (data) {
                 data.forEach(item => {
-                    this.evictionData[item.tractid] = item.totalfilings || 0;
+                    this.evictionData[item.tractid] = {
+                        totalfilings: item.totalfilings || 0,
+                        filingRate: item['filing-rate'] || 0
+                    };
                 });
             }
             
@@ -80,7 +85,9 @@ class DataLoader {
      * Calculate total evictions from current data
      */
     calculateTotalEvictions() {
-        return Object.values(this.evictionData).reduce((sum, filings) => sum + filings, 0);
+        return Object.values(this.evictionData).reduce((sum, tractData) => {
+            return sum + (tractData.totalfilings || 0);
+        }, 0);
     }
 
     /**
@@ -142,7 +149,7 @@ class DataLoader {
             // Use smaller .in() query with only months that have data (same as successful multi-month approach)
             const { data, error } = await this.supabase
                 .from('tract-summary')
-                .select('tractid, totalfilings, filemonth')
+                .select('tractid, totalfilings, filing-rate, filemonth')
                 .in('filemonth', availableMonths)
                 .order('filemonth');
 
@@ -203,7 +210,7 @@ class DataLoader {
             const supabaseTestMonth = this.getMonthUtils().convertToSupabaseFormat(testMonth);
             const { data: singleData, error: singleError } = await this.supabase
                 .from('tract-summary')
-                .select('tractid, totalfilings, filemonth')
+                .select('tractid, totalfilings, filing-rate, filemonth')
                 .eq('filemonth', supabaseTestMonth);
 
             if (singleError) throw singleError;
@@ -211,10 +218,10 @@ class DataLoader {
             const singleTotal = singleData ? singleData.reduce((sum, item) => sum + (item.totalfilings || 0), 0) : 0;
             console.log(`Single-month query (.eq): ${singleData?.length || 0} records, total: ${singleTotal}`);
 
-            // Method 2: Multi-month loading with .in() filter (what County Trends uses) 
+            // Method 2: Multi-month loading with .in() filter (what County Trends uses)
             const { data: multiData, error: multiError } = await this.supabase
                 .from('tract-summary')
-                .select('tractid, totalfilings, filemonth')
+                .select('tractid, totalfilings, filing-rate, filemonth')
                 .in('filemonth', [supabaseTestMonth]);
 
             if (multiError) throw multiError;
@@ -227,7 +234,7 @@ class DataLoader {
             const validMonths = monthUtils.getAllMonthsSupabaseFormat();
             const { data: fullRangeData, error: fullRangeError } = await this.supabase
                 .from('tract-summary')
-                .select('tractid, totalfilings, filemonth')
+                .select('tractid, totalfilings, filing-rate, filemonth')
                 .in('filemonth', validMonths);
 
             if (fullRangeError) throw fullRangeError;
@@ -291,5 +298,48 @@ class DataLoader {
      */
     getMonthUtils() {
         return this.monthUtils;
+    }
+
+    /**
+     * Set display mode (count or rate)
+     */
+    setDisplayMode(mode) {
+        if (mode === 'count' || mode === 'rate') {
+            this.displayMode = mode;
+        }
+    }
+
+    /**
+     * Get current display mode
+     */
+    getDisplayMode() {
+        return this.displayMode;
+    }
+
+    /**
+     * Get data value for a tract based on current display mode
+     */
+    getDataValueForTract(tractId) {
+        const tractData = this.evictionData[tractId];
+        if (!tractData) return 0;
+
+        if (this.displayMode === 'rate') {
+            return tractData.filingRate || 0;
+        } else {
+            return tractData.totalfilings || 0;
+        }
+    }
+
+    /**
+     * Get all data values based on current display mode (for legend/styling)
+     */
+    getCurrentDataValues() {
+        return Object.values(this.evictionData).map(tractData => {
+            if (this.displayMode === 'rate') {
+                return tractData.filingRate || 0;
+            } else {
+                return tractData.totalfilings || 0;
+            }
+        });
     }
 }

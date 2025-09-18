@@ -10,6 +10,7 @@ class PopupManager {
         this.isLoading = false;
         this.tractCoordinates = null; // Store the tract's geographic coordinates
         this.mapMoveListener = null; // Store map move event listener
+        this.currentTractId = null; // Store current tract ID for easy access
     }
 
     /**
@@ -24,8 +25,9 @@ class PopupManager {
         
         try {
             this.isLoading = true;
-            
-            // Store the geographic coordinates from the click event
+
+            // Store the tract ID and geographic coordinates from the click event
+            this.currentTractId = tractId;
             this.tractCoordinates = clickEvent.lngLat;
             
             // Create popup element with loading state
@@ -152,14 +154,15 @@ class PopupManager {
         try {
             const { data, error } = await this.dataLoader.supabase
                 .from('tract-summary')
-                .select('filemonth, totalfilings')
+                .select('filemonth, totalfilings, filing-rate')
                 .eq('tractid', tractId)
                 .order('filemonth', { ascending: true });
 
             if (error) throw error;
 
-            // Convert data to chart format
+            // Convert data to chart format based on display mode
             const monthUtils = this.dataLoader.getMonthUtils();
+            const displayMode = this.dataLoader.getDisplayMode();
             const chartData = {
                 labels: [],
                 values: []
@@ -169,7 +172,13 @@ class PopupManager {
                 data.forEach(record => {
                     const monthLabel = monthUtils.dbMonthToHumanReadable(record.filemonth);
                     chartData.labels.push(monthLabel);
-                    chartData.values.push(record.totalfilings || 0);
+
+                    // Use rate or count based on display mode
+                    if (displayMode === 'rate') {
+                        chartData.values.push(record['filing-rate'] || 0);
+                    } else {
+                        chartData.values.push(record.totalfilings || 0);
+                    }
                 });
             }
 
@@ -300,7 +309,14 @@ class PopupManager {
                             },
                             label: function(context) {
                                 const value = context.parsed.y;
-                                return `${value} eviction${value !== 1 ? 's' : ''}`;
+                                const displayMode = popupManager.dataLoader.getDisplayMode();
+
+                                if (displayMode === 'rate') {
+                                    // Format as percentage (already multiplied by 100 in database)
+                                    return `${value.toFixed(2)}% filing rate`;
+                                } else {
+                                    return `${value} eviction${value !== 1 ? 's' : ''}`;
+                                }
                             }
                         }
                     }
@@ -312,7 +328,7 @@ class PopupManager {
                     y: {
                         title: {
                             display: true,
-                            text: 'Evictions'
+                            text: this.getYAxisTitle()
                         },
                         display: true,
                         beginAtZero: true,
@@ -417,8 +433,9 @@ class PopupManager {
             this.mapMoveListener = null;
         }
         
-        // Clear stored coordinates
+        // Clear stored coordinates and tract ID
         this.tractCoordinates = null;
+        this.currentTractId = null;
         
         // Remove outside click listener
         document.removeEventListener('click', this.handleOutsideClick.bind(this), true);
@@ -430,6 +447,41 @@ class PopupManager {
     handleOutsideClick(event) {
         if (this.currentPopup && !this.currentPopup.contains(event.target)) {
             this.closePopup();
+        }
+    }
+
+    /**
+     * Get Y-axis title based on display mode
+     */
+    getYAxisTitle() {
+        const displayMode = this.dataLoader.getDisplayMode();
+        return displayMode === 'rate' ? 'Filing Rate' : 'Evictions';
+    }
+
+    /**
+     * Update chart when display mode changes
+     */
+    async updateChartForDisplayMode(tractId) {
+        if (!this.currentChart || !this.currentPopup) return;
+
+        try {
+            // Reload historical data for new display mode
+            const historicalData = await this.loadHistoricalData(tractId);
+
+            // Update chart data
+            this.currentChart.data.datasets[0].data = historicalData.values;
+
+            // Update y-axis title
+            this.currentChart.options.scales.y.title.text = this.getYAxisTitle();
+
+            // Update the chart
+            this.currentChart.update();
+
+            // Update stored chart data
+            this.chartData = historicalData;
+
+        } catch (error) {
+            console.error('Error updating popup chart for display mode:', error);
         }
     }
 

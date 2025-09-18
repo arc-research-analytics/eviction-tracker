@@ -98,31 +98,103 @@ class UIManager {
     addLegend() {
         const legend = document.createElement('div');
         legend.className = 'legend';
-        legend.innerHTML = `
-            <h4 style="text-align: center;">Eviction Filings<br/>by Census Tract</h4>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #ffffcc;"></div>
-                <span>0</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #fed976;"></div>
-                <span>1-10</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #fd8d3c;"></div>
-                <span>11-25</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #e31a1c;"></div>
-                <span>26-60</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #800026;"></div>
-                <span>60+</span>
-            </div>
-        `;
-        
+        legend.id = 'mapLegend';
+        this.updateLegend(legend);
+
         document.body.appendChild(legend);
+
+        // After legend is added, match toggle container width
+        this.matchToggleContainerWidth();
+    }
+
+    /**
+     * Update legend content based on display mode
+     */
+    updateLegend(legendElement = null) {
+        const legend = legendElement || document.getElementById('mapLegend');
+        if (!legend) return;
+
+        const displayMode = this.dataLoader.getDisplayMode();
+
+        if (displayMode === 'rate') {
+            legend.innerHTML = `
+                <h4 style="text-align: center;">Eviction Filing Rate<br/>by Census Tract</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffffcc;"></div>
+                    <span>0%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #fed976;"></div>
+                    <span>0-2%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #fd8d3c;"></div>
+                    <span>2-5%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e31a1c;"></div>
+                    <span>5-8%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #800026;"></div>
+                    <span>8%+</span>
+                </div>
+                <div class="legend-explanation">
+                    "Rate" defined as the total filings
+                    divided by the number of renter-
+                    occupied housing units in 2023.
+                    
+                </div>
+            `;
+        } else {
+            legend.innerHTML = `
+                <h4 style="text-align: center;">Eviction Filings<br/>by Census Tract</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffffcc;"></div>
+                    <span>0</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #fed976;"></div>
+                    <span>1-10</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #fd8d3c;"></div>
+                    <span>11-25</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e31a1c;"></div>
+                    <span>26-60</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #800026;"></div>
+                    <span>60+</span>
+                </div>
+                <div class="legend-explanation">
+                    Raw eviction count for the given<br/>
+                    month in the census tract.
+                </div>
+            `;
+        }
+
+        // Match toggle container width after legend update
+        this.matchToggleContainerWidth();
+    }
+
+    /**
+     * Match toggle container width to legend width
+     */
+    matchToggleContainerWidth() {
+        const legend = document.getElementById('mapLegend');
+        const toggleContainer = document.getElementById('toggleContainer');
+
+        if (legend && toggleContainer) {
+            // Wait a brief moment for layout to complete
+            setTimeout(() => {
+                const legendWidth = legend.offsetWidth;
+                toggleContainer.style.width = legendWidth + 'px';
+                console.log('Toggle container width matched to legend:', legendWidth + 'px');
+            }, 50);
+        }
     }
 
     /**
@@ -238,5 +310,130 @@ class UIManager {
         });
         
         console.log('All event listeners attached. Try moving the slider and watch the console.');
+    }
+
+    /**
+     * Set up toggle switch event listener
+     */
+    setupToggleListener(onToggleChange) {
+        const toggle = document.getElementById('showRateSwitch');
+
+        if (!toggle) {
+            // Retry after a short delay to ensure Web Awesome components are loaded
+            setTimeout(() => this.setupToggleListener(onToggleChange), 100);
+            return;
+        }
+
+        console.log('Setting up toggle event listener...', toggle);
+        console.log('Toggle initial state:', toggle.checked);
+
+        // Try multiple event types to find which one works for Web Awesome switch
+        const eventTypes = ['wa-change', 'change', 'input', 'click'];
+
+        // Debounce mechanism to prevent multiple rapid calls
+        let isHandling = false;
+        let lastValue = toggle.checked;
+
+        const handleToggleChange = async (event, eventType) => {
+            // Prevent duplicate/rapid fire events
+            if (isHandling) {
+                console.log(`Ignoring duplicate ${eventType} event (already handling)`);
+                return;
+            }
+
+            // Check if value actually changed
+            const currentValue = event.target.checked;
+            if (currentValue === lastValue) {
+                console.log(`Ignoring ${eventType} event (no value change)`);
+                return;
+            }
+
+            isHandling = true;
+            lastValue = currentValue;
+            console.log(`Toggle event '${eventType}' fired:`, {
+                checked: event.target.checked,
+                value: event.target.value,
+                target: event.target
+            });
+
+            const showAsRate = event.target.checked;
+            const newDisplayMode = showAsRate ? 'rate' : 'count';
+
+            console.log('New display mode:', newDisplayMode);
+
+            if (onToggleChange) {
+                try {
+                    await onToggleChange(newDisplayMode);
+                    console.log('Toggle change completed successfully');
+                } catch (error) {
+                    console.error('Error handling toggle change:', error);
+                    this.showError('Failed to update display mode');
+                }
+            }
+
+            // Reset handling flag after a short delay
+            setTimeout(() => {
+                isHandling = false;
+            }, 500);
+        };
+
+        // Add listeners for all potential events
+        eventTypes.forEach(eventType => {
+            toggle.addEventListener(eventType, (event) => {
+                console.log(`Event '${eventType}' detected on toggle`);
+                handleToggleChange(event, eventType);
+            });
+        });
+
+        // Also try with shadow DOM events
+        if (toggle.shadowRoot) {
+            console.log('Toggle has shadow root, adding shadow DOM listeners');
+            const shadowToggle = toggle.shadowRoot.querySelector('input[type="checkbox"]');
+            if (shadowToggle) {
+                shadowToggle.addEventListener('change', (event) => {
+                    console.log('Shadow DOM change event detected');
+                    // Manually update the main element
+                    toggle.checked = event.target.checked;
+                    handleToggleChange({ target: toggle }, 'shadow-change');
+                });
+            }
+        }
+
+        console.log('Toggle event listeners attached for events:', eventTypes);
+
+        // Backup method: Use MutationObserver to watch for attribute changes
+        if (window.MutationObserver) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' &&
+                        (mutation.attributeName === 'checked' || mutation.attributeName === 'aria-checked')) {
+                        console.log('MutationObserver detected checked attribute change:', {
+                            attributeName: mutation.attributeName,
+                            oldValue: mutation.oldValue,
+                            newValue: toggle.checked || toggle.getAttribute('checked')
+                        });
+
+                        const isChecked = toggle.checked || toggle.hasAttribute('checked');
+
+                        // Use same debouncing logic
+                        if (isChecked === lastValue) {
+                            console.log('MutationObserver ignoring - no value change');
+                            return;
+                        }
+
+                        console.log('MutationObserver triggering mode change:', isChecked ? 'rate' : 'count');
+                        handleToggleChange({ target: { checked: isChecked } }, 'mutation-observer');
+                    }
+                });
+            });
+
+            observer.observe(toggle, {
+                attributes: true,
+                attributeOldValue: true,
+                attributeFilter: ['checked', 'aria-checked']
+            });
+
+            console.log('MutationObserver set up for toggle changes');
+        }
     }
 }

@@ -3,14 +3,15 @@
  * Create this as a separate file (MapTooltipHandler.js) and use it with your map
  */
 class MapTooltipHandler {
-    constructor(map, tooltipManager, censusLayerId) {
+    constructor(map, tooltipManager, censusLayerId, dataLoader = null) {
         this.map = map;
         this.tooltipManager = tooltipManager;
         this.censusLayerId = censusLayerId;
+        this.dataLoader = dataLoader;
         this.capturedLatLng = null;
         this.isDragging = false;
         this.dragDetected = false; // Track if actual dragging occurred
-        
+
         this.setupEventListeners();
     }
     
@@ -115,11 +116,32 @@ class MapTooltipHandler {
     
     generateTooltipContent(feature) {
         const properties = feature.properties;
-        const filings = properties.totalfilings || 0;
-        
-        return `
-            <span class="tooltip-count">Eviction filings: ${filings}</span>
-            <span class="tooltip-hint"><i>Click for historic trends</i></span>
-        `;
+
+        // Use display value and appropriate text based on display mode
+        if (this.dataLoader) {
+            const displayMode = this.dataLoader.getDisplayMode();
+            const displayValue = properties.displayvalue || 0;
+
+            if (displayMode === 'rate') {
+                // Filing rate is already in percentage format from database
+                const percentageValue = displayValue.toFixed(2);
+                return `
+                    <span class="tooltip-count">Filing rate: ${percentageValue}%</span>
+                    <span class="tooltip-hint"><i>Click for historic trends</i></span>
+                `;
+            } else {
+                return `
+                    <span class="tooltip-count">Eviction filings: ${displayValue}</span>
+                    <span class="tooltip-hint"><i>Click for historic trends</i></span>
+                `;
+            }
+        } else {
+            // Fallback to original behavior if no dataLoader
+            const filings = properties.totalfilings || 0;
+            return `
+                <span class="tooltip-count">Eviction filings: ${filings}</span>
+                <span class="tooltip-hint"><i>Click for historic trends</i></span>
+            `;
+        }
     }
 }
