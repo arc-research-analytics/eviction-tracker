@@ -7,7 +7,7 @@ const CONFIG = {
         accessToken: 'pk.eyJ1Ijoid3dyaWdodDIxIiwiYSI6ImNtZmZweTc2ZjBnbGEyeHB3dmRqZGg4dHcifQ.AU-tVnuPpaoQP2icjuFqkg',
     },
     dateRange: {
-        START_DATE: '2020-01',  // January 2020
-        MAX_DATE: '2025-05'     // May 2025
+        START_DATE: '2016-01',  
+        MAX_DATE: '2025-05'     
     }
 };
