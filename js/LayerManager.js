@@ -22,10 +22,17 @@ class LayerManager {
             let matchedCount = 0;
             tractData.features.forEach(feature => {
                 const tractId = feature.properties.GEOID;
-                const filings = evictionData[tractId] || 0;
-                feature.properties.totalfilings = filings;
-                
-                if (filings > 0) {
+                const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
+
+                // Set both total filings and filing rate
+                feature.properties.totalfilings = tractData.totalfilings || 0;
+                feature.properties.filingrate = tractData.filingRate || 0;
+
+                // Set the display value based on current display mode
+                const displayValue = this.dataLoader.getDataValueForTract(tractId);
+                feature.properties.displayvalue = displayValue;
+
+                if (displayValue > 0) {
                     matchedCount++;
                 }
             });
@@ -58,22 +65,13 @@ class LayerManager {
      * Add all tract-related layers to the map
      */
     addTractLayers() {
-        // Fill layer for tract coloring
+        // Fill layer for tract coloring - use dynamic color scale
         this.map.addLayer({
             id: 'tract-fills',
             type: 'fill',
             source: 'eviction-tracts',
             paint: {
-                'fill-color': [
-                    'interpolate',
-                    ['linear'],
-                    ['get', 'totalfilings'],
-                    0, '#ffffcc',    // Light yellow for 0 filings
-                    10, '#fed976',   // Yellow for low filings (1-10)
-                    25, '#fd8d3c',   // Orange for medium filings (11-25)
-                    60, '#e31a1c',   // Red for high filings (26-60)
-                    100, '#800026'   // Dark red for very high filings (60+)
-                ],
+                'fill-color': this.getColorScale(),
                 'fill-opacity': 0.7
             }
         });
@@ -217,10 +215,17 @@ class LayerManager {
             let matchedCount = 0;
             tractData.features.forEach(feature => {
                 const tractId = feature.properties.GEOID;
-                const filings = evictionData[tractId] || 0;
-                feature.properties.totalfilings = filings;
-                
-                if (filings > 0) {
+                const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
+
+                // Set both total filings and filing rate
+                feature.properties.totalfilings = tractData.totalfilings || 0;
+                feature.properties.filingrate = tractData.filingRate || 0;
+
+                // Set the display value based on current display mode
+                const displayValue = this.dataLoader.getDataValueForTract(tractId);
+                feature.properties.displayvalue = displayValue;
+
+                if (displayValue > 0) {
                     matchedCount++;
                 }
             });
@@ -272,5 +277,47 @@ class LayerManager {
      */
     isMaskLayerLoaded() {
         return this.map.getSource('county-mask') !== undefined;
+    }
+
+    /**
+     * Get color scale based on current display mode
+     */
+    getColorScale() {
+        const displayMode = this.dataLoader.getDisplayMode();
+
+        if (displayMode === 'rate') {
+            // Rate-based color scale (already percentage values from database)
+            return [
+                'interpolate',
+                ['linear'],
+                ['get', 'displayvalue'],
+                0, '#ffffcc',      // Light yellow for 0% rate
+                2, '#fed976',      // Yellow for 0-2% rate
+                5, '#fd8d3c',      // Orange for 2-5% rate
+                8, '#e31a1c',      // Red for 5-8% rate
+                12, '#800026'      // Dark red for 8%+ rate
+            ];
+        } else {
+            // Count-based color scale (original)
+            return [
+                'interpolate',
+                ['linear'],
+                ['get', 'displayvalue'],
+                0, '#ffffcc',    // Light yellow for 0 filings
+                10, '#fed976',   // Yellow for low filings (1-10)
+                25, '#fd8d3c',   // Orange for medium filings (11-25)
+                60, '#e31a1c',   // Red for high filings (26-60)
+                100, '#800026'   // Dark red for very high filings (60+)
+            ];
+        }
+    }
+
+    /**
+     * Update color scale when display mode changes
+     */
+    updateColorScale() {
+        if (this.map.getLayer('tract-fills')) {
+            this.map.setPaintProperty('tract-fills', 'fill-color', this.getColorScale());
+        }
     }
 }

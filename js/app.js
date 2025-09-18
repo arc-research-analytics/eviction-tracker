@@ -94,6 +94,9 @@ class EvictionApp {
                 
                 // Set up slider functionality
                 this.setupSliderFunctionality();
+
+                // Set up toggle functionality
+                this.setupToggleFunctionality();
                 
                 // Hide loading screen
                 this.uiManager.hideLoading();
@@ -280,8 +283,90 @@ class EvictionApp {
                 return { error: error.message };
             }
         };
-        
+
+        // Add debugging helper for toggle
+        window.testToggle = (mode) => {
+            console.log('Manually testing toggle with mode:', mode);
+            if (mode === 'rate' || mode === 'count') {
+                this.dataLoader.setDisplayMode(mode);
+                console.log('DataLoader display mode set to:', this.dataLoader.getDisplayMode());
+
+                // Manually update UI components
+                this.uiManager.updateLegend();
+                if (this.mapManager && this.mapManager.updateColorScale) {
+                    this.mapManager.updateColorScale();
+                }
+                console.log('UI updated manually');
+                return `Mode changed to: ${mode}`;
+            } else {
+                return 'Invalid mode. Use "rate" or "count"';
+            }
+        };
+
+        // Helper to check toggle state
+        window.checkToggle = () => {
+            const toggle = document.getElementById('showRateSwitch');
+            const currentMode = this.dataLoader.getDisplayMode();
+            console.log('Toggle element:', toggle);
+            console.log('Toggle checked:', toggle?.checked);
+            console.log('Toggle attributes:', {
+                checked: toggle?.getAttribute('checked'),
+                ariaChecked: toggle?.getAttribute('aria-checked')
+            });
+            console.log('Current display mode:', currentMode);
+            return {
+                element: toggle,
+                checked: toggle?.checked,
+                displayMode: currentMode
+            };
+        };
+
     }
+
+    /**
+     * Set up toggle functionality for switching between rates and counts
+     */
+    setupToggleFunctionality() {
+        console.log('App: Setting up toggle functionality...');
+
+        // Set up the toggle event listener with callback
+        this.uiManager.setupToggleListener(async (newDisplayMode) => {
+            try {
+                console.log('App: Handling display mode change to:', newDisplayMode);
+
+                // Show loading for the mode change
+                this.uiManager.showLoading();
+
+                // Update data loader display mode
+                this.dataLoader.setDisplayMode(newDisplayMode);
+
+                // Refresh map layers with new display values
+                await this.mapManager.refreshTractBoundaries();
+
+                // Update map color scale
+                this.mapManager.updateColorScale();
+
+                // Update legend
+                this.uiManager.updateLegend();
+
+                // Update any open popup chart for new display mode
+                if (this.popupManager && this.popupManager.currentPopup && this.popupManager.currentTractId) {
+                    await this.popupManager.updateChartForDisplayMode(this.popupManager.currentTractId);
+                }
+
+                // Hide loading
+                this.uiManager.hideLoading();
+
+                console.log('App: Display mode change completed successfully');
+
+            } catch (error) {
+                console.error('App: Error handling display mode change:', error);
+                this.uiManager.hideLoading();
+                this.uiManager.showError('Failed to update display mode');
+            }
+        });
+    }
+
 
     /**
      * Initialize map tooltip handler after map layers are loaded
@@ -302,8 +387,8 @@ class EvictionApp {
             return;
         }
 
-        // Initialize the map tooltip handler
-        this.mapTooltipHandler = new MapTooltipHandler(map, tooltipManager, censusLayerId);
+        // Initialize the map tooltip handler with dataLoader for display mode awareness
+        this.mapTooltipHandler = new MapTooltipHandler(map, tooltipManager, censusLayerId, this.dataLoader);
         
         console.log('MapTooltipHandler initialized successfully');
     }

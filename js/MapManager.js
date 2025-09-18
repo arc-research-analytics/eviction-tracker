@@ -234,6 +234,18 @@ class MapManager {
     }
 
     /**
+     * Update color scale when display mode changes
+     */
+    updateColorScale() {
+        if (!this.layerManager) {
+            console.error('LayerManager not initialized');
+            return;
+        }
+
+        this.layerManager.updateColorScale();
+    }
+
+    /**
      * Clean up all managers and resources
      */
     destroy() {
