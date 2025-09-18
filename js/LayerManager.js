@@ -186,7 +186,7 @@ class LayerManager {
                 source: 'county-mask',
                 paint: {
                     'fill-color': '#808080',
-                    'fill-opacity': 0.5 
+                    'fill-opacity': 0.4
                 }
             });
 
