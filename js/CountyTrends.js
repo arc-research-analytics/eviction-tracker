@@ -215,7 +215,7 @@ class CountyTrends {
       const currentMonth = this.dataLoader.getCurrentMonth();
       const currentMonthIndex = this.dataLoader.getMonthUtils().dbMonthToSliderIndex(currentMonth);
 
-      // Create custom plugin for vertical lines
+      // Create custom plugin for vertical lines and moratorium periods
       const countyTrends = this; // Reference to this instance for closure
       const verticalLinePlugin = {
         id: 'verticalLine',
@@ -223,11 +223,72 @@ class CountyTrends {
           const ctx = chart.ctx;
           const chartArea = chart.chartArea;
           const xScale = chart.scales.x;
-          
+
+          // Define moratorium periods (format: YYYY-MM to match data)
+          const moratoriumPeriods = [
+            {
+              name: 'CARES Act',
+              start: '2020-03', // March 2020
+              end: '2020-07',   // July 2020
+              color: 'rgba(128, 128, 128, 0.15)'
+            },
+            {
+              name: 'CDC',
+              start: '2020-09', // September 2020
+              end: '2021-10',   // October 2021
+              color: 'rgba(128, 128, 128, 0.15)'
+            }
+          ];
+
+          // Draw moratorium period shaded regions
+          moratoriumPeriods.forEach(period => {
+            // Find month indices for this period
+            const startIndex = countyTrends.monthlyData.findIndex(m => m.month === period.start);
+            const endIndex = countyTrends.monthlyData.findIndex(m => m.month === period.end);
+
+            // Debug logging
+            console.log(`Moratorium Debug - ${period.name}:`, {
+              lookingFor: { start: period.start, end: period.end },
+              foundIndices: { startIndex, endIndex },
+              sampleMonths: countyTrends.monthlyData.slice(0, 5).map(m => m.month),
+              totalMonths: countyTrends.monthlyData.length,
+              firstMonth: countyTrends.monthlyData[0]?.month,
+              lastMonth: countyTrends.monthlyData[countyTrends.monthlyData.length - 1]?.month
+            });
+
+            if (startIndex >= 0 && endIndex >= 0 && endIndex >= startIndex) {
+              const xStart = xScale.getPixelForValue(startIndex);
+              const xEnd = xScale.getPixelForValue(endIndex);
+
+              console.log(`Drawing ${period.name} moratorium from x=${xStart} to x=${xEnd}`);
+
+              // Draw shaded rectangle
+              ctx.save();
+              ctx.fillStyle = period.color;
+              ctx.fillRect(xStart, chartArea.top, xEnd - xStart, chartArea.bottom - chartArea.top);
+              ctx.restore();
+
+              // Draw label at top of shaded region (two lines)
+              ctx.save();
+              ctx.fillStyle = 'rgba(80, 80, 80, 0.8)';
+              ctx.font = 'bold 11px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'top';
+              const labelX = (xStart + xEnd) / 2;
+              const labelY = chartArea.top + 5;
+              // Draw two lines of text
+              ctx.fillText(period.name, labelX, labelY);
+              ctx.fillText('Moratorium', labelX, labelY + 13); // 13px spacing
+              ctx.restore();
+            } else {
+              console.log(`Skipping ${period.name} moratorium - months not found in data range`);
+            }
+          });
+
           // Draw static vertical line for current month (dashed)
           if (countyTrends.currentMonthIndex >= 0 && countyTrends.currentMonthIndex < labels.length) {
             const xPos = xScale.getPixelForValue(countyTrends.currentMonthIndex);
-            
+
             ctx.save();
             ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
             ctx.lineWidth = 2;
@@ -238,13 +299,13 @@ class CountyTrends {
             ctx.stroke();
             ctx.restore();
           }
-          
+
           // Draw dynamic hover crosshair (solid line)
           if (chart.tooltip && chart.tooltip.opacity > 0) {
             const activeElements = chart.tooltip.dataPoints;
             if (activeElements && activeElements.length > 0) {
               const xPos = activeElements[0].element.x;
-              
+
               ctx.save();
               ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; // Light black for hover line
               ctx.lineWidth = 1;
