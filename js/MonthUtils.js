@@ -26,37 +26,11 @@ class MonthUtils {
      */
     async loadAvailableMonths(supabaseClient) {
         try {
-            console.log('MonthUtils: Loading available months from database...');
-            
             // Get all available months from new table structure
-            console.log('MonthUtils: Querying tract-summary and month-summary tables...');
             const [tractData, monthData] = await Promise.all([
-                supabaseClient.from('tract-summary').select('filemonth').limit(1000),
-                supabaseClient.from('month-summary').select('filemonth').limit(1000)
+                supabaseClient.from('evictions-tract').select('filemonth').limit(1000),
+                supabaseClient.from('evictions-month').select('filemonth').limit(1000)
             ]);
-
-            console.log('MonthUtils: Query results:', {
-                tractData: { data: tractData.data?.length || 0, error: tractData.error },
-                monthData: { data: monthData.data?.length || 0, error: monthData.error }
-            });
-            
-            // Debug: Show sample data from each table
-            if (tractData.data?.length > 0) {
-                console.log('MonthUtils: Sample tract-summary months:', tractData.data.slice(0, 5).map(d => d.filemonth));
-                console.log('MonthUtils: First tract row full data:', tractData.data[0]);
-            }
-            if (monthData.data?.length > 0) {
-                console.log('MonthUtils: Sample month-summary months:', monthData.data.slice(0, 5).map(d => d.filemonth));
-                console.log('MonthUtils: First month row full data:', monthData.data[0]);
-            }
-            
-            // Debug: Show what errors if any
-            if (tractData.error) {
-                console.error('MonthUtils: tract-summary query error:', tractData.error);
-            }
-            if (monthData.error) {
-                console.error('MonthUtils: month-summary query error:', monthData.error);
-            }
 
             // Combine and deduplicate months
             const allMonths = new Set();
@@ -70,8 +44,6 @@ class MonthUtils {
                     allMonths.add(row.filemonth);
                 });
             }
-            
-            console.log('MonthUtils: Found', allMonths.size, 'unique months in database');
 
             // Convert to internal format and sort chronologically
             const supabaseMonths = Array.from(allMonths);
@@ -86,46 +58,32 @@ class MonthUtils {
                 });
 
             // Filter out months beyond config MAX_DATE if specified
-            const configMaxDate = (typeof CONFIG !== 'undefined' && CONFIG.dateRange) 
-                ? CONFIG.dateRange.MAX_DATE 
+            const configMaxDate = (typeof CONFIG !== 'undefined' && CONFIG.dateRange)
+                ? CONFIG.dateRange.MAX_DATE
                 : null;
-                
+
             if (configMaxDate) {
-                console.log(`MonthUtils: Applying MAX_DATE filter: ${configMaxDate} (format: YYYY-MM)`);
-                console.log(`MonthUtils: Sample database months:`, internalMonths.slice(0, 3), '...', internalMonths.slice(-3));
-                
                 const maxDateNum = this.parseMonthForComparison(configMaxDate);
-                const originalCount = internalMonths.length;
-                
+
                 internalMonths = internalMonths.filter(month => {
                     const monthNum = this.parseMonthForComparison(month);
                     return monthNum <= maxDateNum;
                 });
-                
-                const filteredCount = originalCount - internalMonths.length;
-                if (filteredCount > 0) {
-                    console.log(`MonthUtils: Filtered out ${filteredCount} months beyond MAX_DATE ${configMaxDate}`);
-                } else {
-                    console.log(`MonthUtils: All ${originalCount} months are within MAX_DATE limit`);
-                }
             }
 
             this.monthList = internalMonths;
-            
-            console.log(`MonthUtils: Loaded ${internalMonths.length} months from database:`, internalMonths.slice(0, 5), '...', internalMonths.slice(-5));
-            
+
             // If no months found, fall back to config-based approach
             if (internalMonths.length === 0) {
-                console.warn('MonthUtils: No months found in database, falling back to config-based approach');
                 const fallbackMonths = this.generateConfigBasedMonthList();
                 this.monthList = fallbackMonths;
                 return fallbackMonths;
             }
-            
+
             return internalMonths;
-            
+
+
         } catch (error) {
-            console.error('MonthUtils: Error loading available months:', error);
             // Fallback to config-based approach
             const fallbackMonths = this.generateConfigBasedMonthList();
             this.monthList = fallbackMonths;
@@ -168,7 +126,6 @@ class MonthUtils {
             }
         }
 
-        console.log(`MonthUtils: Generated ${months.length} months from config ${startDate} to ${maxDate}:`, months.slice(0, 5), '...', months.slice(-5));
         return months;
     }
 
@@ -255,17 +212,16 @@ class MonthUtils {
         const configMaxDate = (typeof CONFIG !== 'undefined' && CONFIG.dateRange) 
             ? CONFIG.dateRange.MAX_DATE 
             : null;
-            
+
+
         if (configMaxDate) {
             const maxIndex = this.dbMonthToSliderIndex(configMaxDate);
             if (maxIndex !== -1) {
-                console.log(`MonthUtils: Using config MAX_DATE ${configMaxDate} as default (index ${maxIndex})`);
                 return maxIndex;
             }
         }
-        
+
         // Fallback to last available month if config MAX_DATE not found in data
-        console.log('MonthUtils: Config MAX_DATE not found in data, using latest available month');
         return this.monthList.length - 1;
     }
 
@@ -282,18 +238,16 @@ class MonthUtils {
      */
     convertToSupabaseFormat(dbMonth) {
         if (!dbMonth) {
-            console.error('MonthUtils: Cannot convert null/undefined month to Supabase format');
             return null;
         }
-        
+
         // Now both internal and Supabase formats are YYYY-MM, so just return as-is
         // But validate the format
         const [year, month] = dbMonth.split('-');
         if (year && month && year.length === 4 && month.length === 2) {
             return dbMonth; // Already in correct YYYY-MM format
         }
-        
-        console.warn('MonthUtils: Invalid month format, expected YYYY-MM:', dbMonth);
+
         return dbMonth;
     }
 

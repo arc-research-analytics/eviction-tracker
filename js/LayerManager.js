@@ -46,7 +46,6 @@ class LayerManager {
             return { matchedCount, totalTracts: tractData.features.length };
 
         } catch (error) {
-            console.error('Error loading tract boundaries:', error);
             throw new Error('Failed to load tract boundaries');
         }
     }
@@ -156,7 +155,6 @@ class LayerManager {
             });
 
         } catch (error) {
-            console.error('Error loading county outline:', error);
             throw new Error('Failed to load county outline');
         }
     }
@@ -189,7 +187,6 @@ class LayerManager {
             });
 
         } catch (error) {
-            console.error('Error loading county mask:', error);
             throw new Error('Failed to load county mask');
         }
     }
@@ -236,7 +233,6 @@ class LayerManager {
             return { matchedCount, totalTracts: tractData.features.length };
 
         } catch (error) {
-            console.error('Error refreshing tract boundaries:', error);
             throw new Error('Failed to refresh tract boundaries');
         }
     }
@@ -250,10 +246,9 @@ class LayerManager {
             await this.loadCountyMask();    // Bottom layer (grey mask)
             await this.loadTractBoundaries(); // Middle layers (tract data)
             await this.loadCountyOutline(); // Top layer (county border)
-            
+
             return true;
         } catch (error) {
-            console.error('Error loading layers:', error);
             throw new Error('Failed to load map layers');
         }
     }

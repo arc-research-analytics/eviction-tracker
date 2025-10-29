@@ -67,7 +67,6 @@ class EvictionApp {
                 try {
                     // Make sure we have months available before loading data
                     if (this.dataLoader.getMonthUtils().getAllMonths().length === 0) {
-                        console.warn('App: No months available, retrying initialization...');
                         await this.dataLoader.initializeAvailableMonths();
                     }
 
@@ -76,12 +75,11 @@ class EvictionApp {
                     await this.mapManager.loadCountyMask();
                     await this.mapManager.loadCountyOutline();
                 } catch (error) {
-                    console.error('App: Error loading map data:', error);
                     this.uiManager.hideLoading();
                     this.uiManager.showError('Failed to load map data');
                     return;
                 }
-                
+
                 // Now that tract layers are loaded, set up interactions
                 this.mapManager.setPopupManager(this.popupManager);
                 
@@ -103,7 +101,6 @@ class EvictionApp {
             });
 
         } catch (error) {
-            console.error('Error initializing app:', error);
             this.uiManager.hideLoading();
             this.uiManager.showError('Failed to initialize application');
         }
@@ -125,8 +122,6 @@ class EvictionApp {
             slider.setAttribute('max', totalMonths - 1);  // 0-based indexing
             slider.setAttribute('value', currentIndex);
             slider.value = currentIndex;
-
-            console.log(`Slider configured: max=${totalMonths - 1}, current=${currentIndex}`);
         }
 
         // Use current data loader month (which was set from HTML value during initialization)
@@ -170,9 +165,9 @@ class EvictionApp {
                 // Hide loading
                 this.uiManager.hideLoading();
                 
-                
+
+
             } catch (error) {
-                console.error('Error handling slider change:', error);
                 this.uiManager.hideLoading();
                 this.uiManager.showError('Failed to load data for selected month');
             }
@@ -184,9 +179,8 @@ class EvictionApp {
             return this.dataLoader.getMonthUtils().sliderIndexToHumanReadable(index);
         };
         
-        // Add data loading comparison helper to global scope 
+        // Add data loading comparison helper to global scope
         window.debugDataLoading = async (month) => {
-            console.log(`Testing data loading methods for month: ${month}`);
             return await this.dataLoader.debugCompareLoadingMethods(month);
         };
         
@@ -195,80 +189,50 @@ class EvictionApp {
             const currentMonth = this.dataLoader.getCurrentMonth();
             const evictionData = this.dataLoader.getEvictionData();
             const total = this.dataLoader.calculateTotalEvictions();
-            console.log(`Current map month: ${currentMonth}`);
-            console.log(`Total evictions displayed: ${total}`);
-            console.log(`Number of tracts with data: ${Object.keys(evictionData).length}`);
             return { month: currentMonth, total, tractCount: Object.keys(evictionData).length };
         };
 
         // Simple RLS test function
         window.testRLS = async () => {
-            console.log('=== TESTING ROW LEVEL SECURITY ===');
-            
             // Direct table access test
-            const monthTest = await this.supabase.from('month-summary').select('*').limit(1);
-            const tractTest = await this.supabase.from('tract-summary').select('*').limit(1);
-            
-            console.log('Direct month-summary test:', monthTest);
-            console.log('Direct tract-summary test:', tractTest);
-            
-            if (monthTest.error) {
-                console.error('❌ month-summary blocked:', monthTest.error.message);
-            } else {
-                console.log('✅ month-summary accessible:', monthTest.data?.length, 'rows');
-            }
-            
-            if (tractTest.error) {
-                console.error('❌ tract-summary blocked:', tractTest.error.message);
-            } else {
-                console.log('✅ tract-summary accessible:', tractTest.data?.length, 'rows');
-            }
+            const monthTest = await this.supabase.from('evictions-month').select('*').limit(1);
+            const tractTest = await this.supabase.from('evictions-tract').select('*').limit(1);
+
+            return {
+                monthTest,
+                tractTest,
+                monthAccessible: !monthTest.error,
+                tractAccessible: !tractTest.error
+            };
         };
 
         // Add database test function for troubleshooting
         window.testDatabase = async () => {
-            console.log('=== DATABASE CONNECTION TEST ===');
-            
             try {
                 // Test 1: Direct queries to both tables
-                console.log('Test 1: Querying month-summary...');
                 const monthTest = await this.supabase
-                    .from('month-summary')
+                    .from('evictions-month')
                     .select('filemonth, totalfilings')
                     .limit(5);
-                
-                console.log('month-summary result:', monthTest);
-                
-                console.log('Test 2: Querying tract-summary...');
+
                 const tractTest = await this.supabase
-                    .from('tract-summary')
+                    .from('evictions-tract')
                     .select('tractid, filemonth, totalfilings')
                     .limit(5);
-                    
-                console.log('tract-summary result:', tractTest);
-                
+
                 // Test 3: Check what months are available
-                console.log('Test 3: Available months in each table...');
                 const [monthMonths, tractMonths] = await Promise.all([
-                    this.supabase.from('month-summary').select('filemonth').limit(100),
-                    this.supabase.from('tract-summary').select('filemonth').limit(100)
+                    this.supabase.from('evictions-month').select('filemonth').limit(100),
+                    this.supabase.from('evictions-tract').select('filemonth').limit(100)
                 ]);
-                
+
                 const uniqueMonthMonths = [...new Set(monthMonths.data?.map(d => d.filemonth) || [])];
                 const uniqueTractMonths = [...new Set(tractMonths.data?.map(d => d.filemonth) || [])];
-                
-                console.log('Available months in month-summary:', uniqueMonthMonths.slice(0, 10));
-                console.log('Available months in tract-summary:', uniqueTractMonths.slice(0, 10));
-                
+
                 // Test 4: Current app month vs available months
                 const currentMonth = this.dataLoader.getCurrentMonth();
                 const supabaseFormat = this.dataLoader.getMonthUtils().convertToSupabaseFormat(currentMonth);
-                
-                console.log('App current month (internal):', currentMonth);
-                console.log('App current month (Supabase format):', supabaseFormat);
-                console.log('Is current month in month-summary?', uniqueMonthMonths.includes(supabaseFormat));
-                console.log('Is current month in tract-summary?', uniqueTractMonths.includes(supabaseFormat));
-                
+
                 return {
                     monthSummaryRows: monthTest.data?.length || 0,
                     tractSummaryRows: tractTest.data?.length || 0,
@@ -277,26 +241,22 @@ class EvictionApp {
                     availableMonths: { monthSummary: uniqueMonthMonths, tractSummary: uniqueTractMonths },
                     currentMonth: { internal: currentMonth, supabase: supabaseFormat }
                 };
-                
+
             } catch (error) {
-                console.error('Database test failed:', error);
                 return { error: error.message };
             }
         };
 
         // Add debugging helper for toggle
         window.testToggle = (mode) => {
-            console.log('Manually testing toggle with mode:', mode);
             if (mode === 'rate' || mode === 'count') {
                 this.dataLoader.setDisplayMode(mode);
-                console.log('DataLoader display mode set to:', this.dataLoader.getDisplayMode());
 
                 // Manually update UI components
                 this.uiManager.updateLegend();
                 if (this.mapManager && this.mapManager.updateColorScale) {
                     this.mapManager.updateColorScale();
                 }
-                console.log('UI updated manually');
                 return `Mode changed to: ${mode}`;
             } else {
                 return 'Invalid mode. Use "rate" or "count"';
@@ -307,13 +267,6 @@ class EvictionApp {
         window.checkToggle = () => {
             const toggle = document.getElementById('showRateSwitch');
             const currentMode = this.dataLoader.getDisplayMode();
-            console.log('Toggle element:', toggle);
-            console.log('Toggle checked:', toggle?.checked);
-            console.log('Toggle attributes:', {
-                checked: toggle?.getAttribute('checked'),
-                ariaChecked: toggle?.getAttribute('aria-checked')
-            });
-            console.log('Current display mode:', currentMode);
             return {
                 element: toggle,
                 checked: toggle?.checked,
@@ -327,13 +280,9 @@ class EvictionApp {
      * Set up toggle functionality for switching between rates and counts
      */
     setupToggleFunctionality() {
-        console.log('App: Setting up toggle functionality...');
-
         // Set up the toggle event listener with callback
         this.uiManager.setupToggleListener(async (newDisplayMode) => {
             try {
-                console.log('App: Handling display mode change to:', newDisplayMode);
-
                 // Show loading for the mode change
                 this.uiManager.showLoading();
 
@@ -357,10 +306,7 @@ class EvictionApp {
                 // Hide loading
                 this.uiManager.hideLoading();
 
-                console.log('App: Display mode change completed successfully');
-
             } catch (error) {
-                console.error('App: Error handling display mode change:', error);
                 this.uiManager.hideLoading();
                 this.uiManager.showError('Failed to update display mode');
             }
@@ -373,7 +319,6 @@ class EvictionApp {
      */
     initializeMapTooltipHandler() {
         if (!this.mapManager || !this.mapManager.getMap()) {
-            console.error('MapManager or map not available for tooltip handler initialization');
             return;
         }
 
@@ -383,14 +328,11 @@ class EvictionApp {
         const censusLayerId = 'tract-fills';
 
         if (!tooltipManager) {
-            console.error('TooltipManager not available from MapManager');
             return;
         }
 
         // Initialize the map tooltip handler with dataLoader for display mode awareness
         this.mapTooltipHandler = new MapTooltipHandler(map, tooltipManager, censusLayerId, this.dataLoader);
-        
-        console.log('MapTooltipHandler initialized successfully');
     }
 
     /**

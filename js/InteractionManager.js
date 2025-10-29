@@ -87,44 +87,31 @@ class InteractionManager {
 
         // Show tooltip again after drag ends if mouse is still over a tract
         this.map.on('dragend', (e) => {
-            console.log('🎯 [TIMING 3.5] InteractionManager dragend:', {
-                timestamp: Date.now(),
-                hasPoint: !!e.point,
-                screenCenter: [window.innerWidth / 2, window.innerHeight / 2]
-            });
-            
             // Don't show tooltip if we don't have actual mouse coordinates
             if (!e.point) {
-                console.log('🚫 InteractionManager: No mouse point available, skipping tooltip to avoid screen center fallback');
                 return;
             }
-            
+
             const point = e.point;
-            console.log('✅ InteractionManager: Using actual mouse coordinates:', point);
-            
+
             const features = this.map.queryRenderedFeatures(point, { layers: ['tract-fills'] });
-            
+
             if (features.length > 0) {
                 const feature = features[0];
                 const tractId = feature.properties.GEOID;
-                
-                console.log('🏠 InteractionManager found tract on dragend:', tractId, 'at point:', point);
-                
+
                 // Update hover state
                 this.hoveredFeatureId = tractId;
-                
+
                 // Show hover border (only if not selected)
                 if (tractId !== this.selectedTractId) {
                     this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
                 }
-                
+
                 // Show tooltip
                 const content = this.generateTooltipContent(feature.properties);
-                console.log('📍 InteractionManager showing tooltip at:', { x: point[0] + 10, y: point[1] - 10 });
                 this.tooltipManager.show(content, point[0] + 10, point[1] - 10);
                 this.tooltipManager.setPositionImmediate(point[0] + 10, point[1] - 10);
-            } else {
-                console.log('❌ InteractionManager: No features found at point:', point);
             }
         });
     }
@@ -151,10 +138,9 @@ class InteractionManager {
      */
     setSelectedTract(tractId) {
         if (!this.map || !this.map.getLayer('tract-borders-selected')) {
-            console.error('Map or selected border layer not available');
             return;
         }
-        
+
         // Update the selected tract ID
         this.selectedTractId = tractId;
         
