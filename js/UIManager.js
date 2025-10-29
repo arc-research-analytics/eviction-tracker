@@ -192,7 +192,6 @@ class UIManager {
             setTimeout(() => {
                 const legendWidth = legend.offsetWidth;
                 toggleContainer.style.width = legendWidth + 'px';
-                console.log('Toggle container width matched to legend:', legendWidth + 'px');
             }, 50);
         }
     }
@@ -206,8 +205,6 @@ class UIManager {
             const monthUtils = this.dataLoader.getMonthUtils();
             const humanReadable = monthUtils.sliderIndexToHumanReadable(sliderIndex);
             sliderLabel.textContent = humanReadable || 'Unknown';
-        } else {
-            console.error('Slider label element not found');
         }
     }
 
@@ -223,17 +220,9 @@ class UIManager {
             return;
         }
 
-
-        // Debug: Let's see what events actually fire
-        console.log('Slider element:', slider);
-        console.log('Slider tagName:', slider.tagName);
-        console.log('Setting up event listeners...');
-        
         let debounceTimeout = null;
-        
+
         const handleSliderChange = async (sliderValue, eventName) => {
-            console.log(`Slider event '${eventName}' fired with value:`, sliderValue);
-            
             // Update slider label immediately for visual feedback
             this.updateSliderLabel(sliderValue);
             
@@ -241,14 +230,12 @@ class UIManager {
             if (debounceTimeout) {
                 clearTimeout(debounceTimeout);
             }
-            
+
             debounceTimeout = setTimeout(async () => {
-                console.log('Executing data load for value:', sliderValue);
                 if (onSliderChange) {
                     try {
                         await onSliderChange(sliderValue);
-                        console.log('Data load completed for:', sliderValue);
-                        
+
                         // Ensure focus returns to map after data loading completes
                         const slider = document.getElementById('monthSlider');
                         const mapCanvas = document.querySelector('#map canvas');
@@ -257,28 +244,24 @@ class UIManager {
                             mapCanvas.focus();
                         }
                     } catch (error) {
-                        console.error('Error handling slider change:', error);
                         this.showError('Failed to load data for selected month');
                     }
                 }
             }, 100);
         };
-        
-        
+
         // Try multiple events and log which ones actually fire
         const eventTypes = ['input', 'change', 'wa-input', 'wa-change'];
-        
+
         eventTypes.forEach(eventType => {
             slider.addEventListener(eventType, (event) => {
-                console.log(`Event '${eventType}' detected on slider with value:`, event.target.value);
                 const sliderValue = parseInt(event.target.value);
                 handleSliderChange(sliderValue, eventType);
             });
         });
-        
+
         // Also try mouseup and touchend for when user finishes dragging
         slider.addEventListener('mouseup', (event) => {
-            console.log('Mouse up on slider with value:', event.target.value);
             const sliderValue = parseInt(event.target.value);
             handleSliderChange(sliderValue, 'mouseup');
             
@@ -292,10 +275,10 @@ class UIManager {
                 }
             }, 10); // Small delay to ensure slider events complete
         });
-        
+
+
         // Also handle touchend for mobile devices
         slider.addEventListener('touchend', (event) => {
-            console.log('Touch end on slider with value:', event.target.value);
             const sliderValue = parseInt(event.target.value);
             handleSliderChange(sliderValue, 'touchend');
             
@@ -308,8 +291,6 @@ class UIManager {
                 }
             }, 10);
         });
-        
-        console.log('All event listeners attached. Try moving the slider and watch the console.');
     }
 
     /**
@@ -324,9 +305,6 @@ class UIManager {
             return;
         }
 
-        console.log('Setting up toggle event listener...', toggle);
-        console.log('Toggle initial state:', toggle.checked);
-
         // Try multiple event types to find which one works for Web Awesome switch
         const eventTypes = ['wa-change', 'change', 'input', 'click'];
 
@@ -337,36 +315,25 @@ class UIManager {
         const handleToggleChange = async (event, eventType) => {
             // Prevent duplicate/rapid fire events
             if (isHandling) {
-                console.log(`Ignoring duplicate ${eventType} event (already handling)`);
                 return;
             }
 
             // Check if value actually changed
             const currentValue = event.target.checked;
             if (currentValue === lastValue) {
-                console.log(`Ignoring ${eventType} event (no value change)`);
                 return;
             }
 
             isHandling = true;
             lastValue = currentValue;
-            console.log(`Toggle event '${eventType}' fired:`, {
-                checked: event.target.checked,
-                value: event.target.value,
-                target: event.target
-            });
 
             const showAsRate = event.target.checked;
             const newDisplayMode = showAsRate ? 'rate' : 'count';
 
-            console.log('New display mode:', newDisplayMode);
-
             if (onToggleChange) {
                 try {
                     await onToggleChange(newDisplayMode);
-                    console.log('Toggle change completed successfully');
                 } catch (error) {
-                    console.error('Error handling toggle change:', error);
                     this.showError('Failed to update display mode');
                 }
             }
@@ -380,18 +347,15 @@ class UIManager {
         // Add listeners for all potential events
         eventTypes.forEach(eventType => {
             toggle.addEventListener(eventType, (event) => {
-                console.log(`Event '${eventType}' detected on toggle`);
                 handleToggleChange(event, eventType);
             });
         });
 
         // Also try with shadow DOM events
         if (toggle.shadowRoot) {
-            console.log('Toggle has shadow root, adding shadow DOM listeners');
             const shadowToggle = toggle.shadowRoot.querySelector('input[type="checkbox"]');
             if (shadowToggle) {
                 shadowToggle.addEventListener('change', (event) => {
-                    console.log('Shadow DOM change event detected');
                     // Manually update the main element
                     toggle.checked = event.target.checked;
                     handleToggleChange({ target: toggle }, 'shadow-change');
@@ -399,29 +363,19 @@ class UIManager {
             }
         }
 
-        console.log('Toggle event listeners attached for events:', eventTypes);
-
         // Backup method: Use MutationObserver to watch for attribute changes
         if (window.MutationObserver) {
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     if (mutation.type === 'attributes' &&
                         (mutation.attributeName === 'checked' || mutation.attributeName === 'aria-checked')) {
-                        console.log('MutationObserver detected checked attribute change:', {
-                            attributeName: mutation.attributeName,
-                            oldValue: mutation.oldValue,
-                            newValue: toggle.checked || toggle.getAttribute('checked')
-                        });
-
                         const isChecked = toggle.checked || toggle.hasAttribute('checked');
 
                         // Use same debouncing logic
                         if (isChecked === lastValue) {
-                            console.log('MutationObserver ignoring - no value change');
                             return;
                         }
 
-                        console.log('MutationObserver triggering mode change:', isChecked ? 'rate' : 'count');
                         handleToggleChange({ target: { checked: isChecked } }, 'mutation-observer');
                     }
                 });
@@ -432,8 +386,6 @@ class UIManager {
                 attributeOldValue: true,
                 attributeFilter: ['checked', 'aria-checked']
             });
-
-            console.log('MutationObserver set up for toggle changes');
         }
     }
 }

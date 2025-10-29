@@ -72,7 +72,6 @@ class MapManager {
      */
     setupMapInteractions() {
         if (!this.popupManager) {
-            console.warn('PopupManager not set yet, deferring interaction setup');
             return;
         }
 
@@ -97,7 +96,6 @@ class MapManager {
             await this.layerManager.loadAllLayers();
             return true;
         } catch (error) {
-            console.error('Error loading all layers:', error);
             throw error;
         }
     }
@@ -114,7 +112,6 @@ class MapManager {
             const result = await this.layerManager.loadTractBoundaries();
             return result;
         } catch (error) {
-            console.error('Error loading tract boundaries:', error);
             throw error;
         }
     }
@@ -130,7 +127,6 @@ class MapManager {
         try {
             await this.layerManager.loadCountyOutline();
         } catch (error) {
-            console.error('Error loading county outline:', error);
             throw error;
         }
     }
@@ -146,7 +142,6 @@ class MapManager {
         try {
             await this.layerManager.loadCountyMask();
         } catch (error) {
-            console.error('Error loading county mask:', error);
             throw error;
         }
     }
@@ -163,7 +158,6 @@ class MapManager {
             const result = await this.layerManager.refreshTractBoundaries();
             return result;
         } catch (error) {
-            console.error('Error refreshing tract boundaries:', error);
             throw error;
         }
     }
@@ -173,10 +167,9 @@ class MapManager {
      */
     setSelectedTract(tractId) {
         if (!this.interactionManager) {
-            console.error('InteractionManager not initialized');
             return;
         }
-        
+
         this.interactionManager.setSelectedTract(tractId);
     }
 
@@ -238,7 +231,6 @@ class MapManager {
      */
     updateColorScale() {
         if (!this.layerManager) {
-            console.error('LayerManager not initialized');
             return;
         }
 

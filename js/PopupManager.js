@@ -47,7 +47,6 @@ class PopupManager {
             this.createChart(historicalData);
             
         } catch (error) {
-            console.error('Error showing tract popup:', error);
             this.showErrorInPopup('Failed to load historical data');
         } finally {
             this.isLoading = false;
@@ -153,7 +152,7 @@ class PopupManager {
     async loadHistoricalData(tractId) {
         try {
             const { data, error } = await this.dataLoader.supabase
-                .from('tract-summary')
+                .from('evictions-tract')
                 .select('filemonth, totalfilings, filing-rate')
                 .eq('tractid', tractId)
                 .order('filemonth', { ascending: true });
@@ -183,9 +182,8 @@ class PopupManager {
             }
 
             return chartData;
-            
+
         } catch (error) {
-            console.error('Error loading historical data:', error);
             throw new Error('Failed to load historical trend data');
         }
     }
@@ -481,7 +479,6 @@ class PopupManager {
             this.chartData = historicalData;
 
         } catch (error) {
-            console.error('Error updating popup chart for display mode:', error);
         }
     }
 

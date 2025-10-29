@@ -39,7 +39,6 @@ class CountyTrends {
     this.loadingIndicator = document.getElementById('chartLoadingIndicator');
 
     if (!this.drawer || !this.openButton || !this.chartCanvas) {
-      console.error('CountyTrends: Required elements not found');
       return;
     }
 
@@ -51,7 +50,6 @@ class CountyTrends {
     this.drawer.addEventListener('wa-show', () => this.onDrawerOpen());
 
     this.isInitialized = true;
-    console.log('CountyTrends: Drawer functionality initialized');
   }
 
   /**
@@ -63,10 +61,8 @@ class CountyTrends {
       
       // Load chart data if not already loaded (cached after first load)
       if (this.monthlyData.length === 0) {
-        console.log('CountyTrends: Loading data for first time...');
         await this.loadTrendsData();
       } else {
-        console.log('CountyTrends: Using cached data, rendering immediately');
         this.renderVisualization();
       }
     }
@@ -85,7 +81,6 @@ class CountyTrends {
    * Handle drawer open event
    */
   onDrawerOpen() {
-    console.log('CountyTrends: Drawer opened');
     // Future: Initialize any charts or data when drawer opens
   }
 
@@ -93,16 +88,14 @@ class CountyTrends {
    * Handle drawer close event
    */
   onDrawerClose() {
-    console.log('CountyTrends: Drawer closed');
     // Future: Clean up any resources when drawer closes
   }
 
   /**
-   * Load county trends data from the month-summary table
+   * Load county trends data from the evictions-month table
    */
   async loadTrendsData() {
     if (!this.dataLoader || !this.supabase) {
-      console.error('CountyTrends: DataLoader or Supabase not available');
       return;
     }
 
@@ -113,41 +106,17 @@ class CountyTrends {
       const monthUtils = this.dataLoader.getMonthUtils();
       const allMonths = monthUtils.getAllMonths();
 
-      console.log('CountyTrends: Loading data for', allMonths.length, 'available months');
-      console.log('CountyTrends: Month range:', allMonths[0] || 'none', 'to', allMonths[allMonths.length - 1] || 'none');
-
-      // Load data from month-summary table for available months (respects MAX_DATE filter)
-      console.log('CountyTrends: Querying month-summary table for available months...');
+      // Load data from evictions-month table for available months (respects MAX_DATE filter)
       const availableMonths = monthUtils.getAllMonthsSupabaseFormat();
-      console.log('CountyTrends: Available months after MAX_DATE filter:', availableMonths.length);
       
       const { data, error } = await this.supabase
-        .from('month-summary')
+        .from('evictions-month')
         .select('filemonth, totalfilings')
         .in('filemonth', availableMonths);
 
-      console.log('CountyTrends: Raw query result:', { 
-        data: data?.length, 
-        error, 
-        firstFewRows: data?.slice(0, 5),
-        sampleMonths: data?.map(d => d.filemonth).slice(0, 10)
-      });
-
       if (error) {
-        console.error('CountyTrends: Supabase error:', error);
         throw error;
       }
-
-      console.log('CountyTrends: Loaded', data?.length || 0, 'monthly records from month-summary table');
-
-      if (!data || data.length === 0) {
-        console.warn('CountyTrends: No data was loaded from month-summary table!');
-        console.log('CountyTrends: Expected months:', allMonths.slice(0, 5), '...', allMonths.slice(-5));
-      }
-
-      // Debug: Check what months are actually in the data
-      const uniqueMonths = [...new Set(data?.map(record => record.filemonth) || [])];
-      console.log('CountyTrends: Found data for', uniqueMonths.length, 'unique months:', uniqueMonths.slice(0, 10));
 
       // Create lookup object for faster access
       // Convert Supabase format to internal format for lookup
@@ -160,8 +129,6 @@ class CountyTrends {
         });
       }
 
-      console.log('CountyTrends: Monthly data indexed:', Object.keys(monthTotals).length, 'months with data');
-
       // Create monthly totals array in configured chronological order
       // This handles the sorting issue by using our configured month order instead of string sorting
       const monthlyTotals = allMonths.map(month => ({
@@ -170,21 +137,13 @@ class CountyTrends {
         label: monthUtils.dbMonthToHumanReadable(month)
       }));
 
-      // Debug: Show key statistics
-      const nonZeroMonths = monthlyTotals.filter(m => m.total > 0).length;
-      const totalEvictions = monthlyTotals.reduce((sum, m) => sum + m.total, 0);
-      console.log('CountyTrends: Processed', nonZeroMonths, 'months with data out of', monthlyTotals.length, 'total months');
-      console.log('CountyTrends: Total evictions across all months:', totalEvictions);
-
       this.monthlyData = monthlyTotals;
-      console.log('CountyTrends: Final monthly data prepared for chart');
 
       // Hide loading indicator and render chart
       this.hideLoading();
       this.renderVisualization();
 
     } catch (error) {
-      console.error('CountyTrends: Error loading trends data:', error);
       this.hideLoading();
       this.showError('Failed to load county trends data');
     }
@@ -195,7 +154,6 @@ class CountyTrends {
    */
   renderVisualization() {
     if (!this.monthlyData.length || !this.chartCanvas) {
-      console.error('CountyTrends: No data or canvas available for chart');
       return;
     }
 
@@ -246,21 +204,9 @@ class CountyTrends {
             const startIndex = countyTrends.monthlyData.findIndex(m => m.month === period.start);
             const endIndex = countyTrends.monthlyData.findIndex(m => m.month === period.end);
 
-            // Debug logging
-            console.log(`Moratorium Debug - ${period.name}:`, {
-              lookingFor: { start: period.start, end: period.end },
-              foundIndices: { startIndex, endIndex },
-              sampleMonths: countyTrends.monthlyData.slice(0, 5).map(m => m.month),
-              totalMonths: countyTrends.monthlyData.length,
-              firstMonth: countyTrends.monthlyData[0]?.month,
-              lastMonth: countyTrends.monthlyData[countyTrends.monthlyData.length - 1]?.month
-            });
-
             if (startIndex >= 0 && endIndex >= 0 && endIndex >= startIndex) {
               const xStart = xScale.getPixelForValue(startIndex);
               const xEnd = xScale.getPixelForValue(endIndex);
-
-              console.log(`Drawing ${period.name} moratorium from x=${xStart} to x=${xEnd}`);
 
               // Draw shaded rectangle
               ctx.save();
@@ -280,8 +226,6 @@ class CountyTrends {
               ctx.fillText(period.name, labelX, labelY);
               ctx.fillText('Moratorium', labelX, labelY + 13); // 13px spacing
               ctx.restore();
-            } else {
-              console.log(`Skipping ${period.name} moratorium - months not found in data range`);
             }
           });
 
@@ -420,10 +364,7 @@ class CountyTrends {
           }
         }
       });
-
-      console.log('CountyTrends: Chart rendered successfully');
     } catch (error) {
-      console.error('CountyTrends: Error rendering chart:', error);
       this.showError('Failed to render chart');
     }
   }
@@ -456,7 +397,6 @@ class CountyTrends {
    * Show error message
    */
   showError(message) {
-    console.error('CountyTrends:', message);
     // TODO: Could implement a user-facing error display here
   }
 
@@ -483,7 +423,6 @@ class CountyTrends {
    */
   clearCache() {
     this.monthlyData = [];
-    console.log('CountyTrends: Cache cleared - next open will reload data');
   }
 }
 
