@@ -55,7 +55,7 @@ The application uses a sequential module loading system in `index.html`. Modules
 2. DataLoader fetches available months from database
 3. Initial month is set from slider value or defaults to latest
 4. Map loads tract boundaries and county data from GeoJSON files
-5. Eviction data is loaded from Supabase `tract-summary` table
+5. Eviction data is loaded from Supabase `evictions-tract` table
 6. Map layers are updated with eviction data styling
 
 ### Month Format Handling
@@ -79,8 +79,8 @@ This is a client-side only application with no build process. Development is don
 
 The app connects to Supabase with these tables:
 
-- `month-summary` - County-level aggregated data by month
-- `tract-summary` - Census tract level eviction data by month
+- `evictions-month` - County-level aggregated data by month
+- `evictions-tract` - Census tract level eviction data by month
 
 Key fields:
 
