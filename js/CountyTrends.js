@@ -110,34 +110,59 @@ class CountyTrends {
       const availableMonths = monthUtils.getAllMonthsSupabaseFormat();
       
       const { data, error } = await this.supabase
-        .from('evictions-month')
-        .select('filemonth, totalfilings')
+        .from('evictions-county')
+        .select('filemonth, county_name, totalfilings')
         .in('filemonth', availableMonths);
 
       if (error) {
         throw error;
       }
 
-      // Create lookup object for faster access
-      // Convert Supabase format to internal format for lookup
-      const monthTotals = {};
+      // Group data by county and month
+      const countyData = {};
       if (data) {
         data.forEach(record => {
-          // Convert YYYY-M format to YY-MM format for internal consistency
+          const countyName = record.county_name;
           const internalFormat = monthUtils.convertFromSupabaseFormat(record.filemonth);
-          monthTotals[internalFormat] = record.totalfilings || 0;
+
+          if (!countyData[countyName]) {
+            countyData[countyName] = {};
+          }
+
+          countyData[countyName][internalFormat] = record.totalfilings || 0;
         });
       }
 
-      // Create monthly totals array in configured chronological order
-      // This handles the sorting issue by using our configured month order instead of string sorting
-      const monthlyTotals = allMonths.map(month => ({
-        month: month,
-        total: monthTotals[month] || 0,
-        label: monthUtils.dbMonthToHumanReadable(month)
-      }));
+      // Create datasets for each county
+      const labels = allMonths.map(month => monthUtils.dbMonthToHumanReadable(month));
+      const datasets = Object.keys(countyData).sort().map((countyName, index) => {
+        const monthlyValues = allMonths.map(month => countyData[countyName][month] || 0);
 
-      this.monthlyData = monthlyTotals;
+        // Color palette for 5 counties
+        const colors = [
+          '#e31a1c',  // Red - Fulton
+          '#1f78b4',  // Blue - DeKalb
+          '#33a02c',  // Green - Gwinnett
+          '#ff7f00',  // Orange - Cobb
+          '#6a3d9a'   // Purple - Clayton
+        ];
+
+        return {
+          label: countyName,
+          data: monthlyValues,
+          borderColor: colors[index % colors.length],
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointBackgroundColor: colors[index % colors.length],
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 1
+        };
+      });
+
+      this.monthlyData = { labels, datasets };
 
       // Hide loading indicator and render chart
       this.hideLoading();
@@ -153,7 +178,7 @@ class CountyTrends {
    * Render county trends visualization using Chart.js
    */
   renderVisualization() {
-    if (!this.monthlyData.length || !this.chartCanvas) {
+    if (!this.monthlyData || !this.monthlyData.labels || !this.chartCanvas) {
       return;
     }
 
@@ -164,14 +189,13 @@ class CountyTrends {
       }
 
       const ctx = this.chartCanvas.getContext('2d');
-      
-      // Prepare data for Chart.js
-      const labels = this.monthlyData.map(item => item.label);
-      const data = this.monthlyData.map(item => item.total);
 
       // Get current slider month for vertical line
       const currentMonth = this.dataLoader.getCurrentMonth();
       const currentMonthIndex = this.dataLoader.getMonthUtils().dbMonthToSliderIndex(currentMonth);
+
+      // Get month list for moratorium period lookups
+      const allMonths = this.dataLoader.getMonthUtils().getAllMonths();
 
       // Create custom plugin for vertical lines and moratorium periods
       const countyTrends = this; // Reference to this instance for closure
@@ -201,8 +225,8 @@ class CountyTrends {
           // Draw moratorium period shaded regions
           moratoriumPeriods.forEach(period => {
             // Find month indices for this period
-            const startIndex = countyTrends.monthlyData.findIndex(m => m.month === period.start);
-            const endIndex = countyTrends.monthlyData.findIndex(m => m.month === period.end);
+            const startIndex = allMonths.findIndex(m => m === period.start);
+            const endIndex = allMonths.findIndex(m => m === period.end);
 
             if (startIndex >= 0 && endIndex >= 0 && endIndex >= startIndex) {
               const xStart = xScale.getPixelForValue(startIndex);
@@ -230,7 +254,7 @@ class CountyTrends {
           });
 
           // Draw static vertical line for current month (dashed)
-          if (countyTrends.currentMonthIndex >= 0 && countyTrends.currentMonthIndex < labels.length) {
+          if (countyTrends.currentMonthIndex >= 0 && countyTrends.currentMonthIndex < countyTrends.monthlyData.labels.length) {
             const xPos = xScale.getPixelForValue(countyTrends.currentMonthIndex);
 
             ctx.save();
@@ -270,21 +294,8 @@ class CountyTrends {
       this.chart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
-          datasets: [{
-            label: 'Monthly Evictions',
-            data: data,
-            borderColor: '#e31a1c',
-            backgroundColor: 'rgba(227, 26, 28, 0.1)',
-            borderWidth: 2,
-            pointBackgroundColor: '#e31a1c',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            fill: true,
-            tension: 0.1
-          }]
+          labels: this.monthlyData.labels,
+          datasets: this.monthlyData.datasets
         },
         plugins: [verticalLinePlugin], // Add the vertical line plugin
         options: {
@@ -340,7 +351,15 @@ class CountyTrends {
               display: false
             },
             legend: {
-              display: false
+              display: true,
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 15,
+                font: {
+                  size: 12
+                }
+              }
             },
             tooltip: {
               backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -349,7 +368,9 @@ class CountyTrends {
               cornerRadius: 6,
               callbacks: {
                 label: function(context) {
-                  return `Evictions: ${context.parsed.y.toLocaleString()}`;
+                  const countyName = context.dataset.label;
+                  const value = context.parsed.y.toLocaleString();
+                  return `${countyName}: ${value} evictions`;
                 }
               }
             }

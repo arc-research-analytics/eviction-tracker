@@ -24,7 +24,7 @@ class MapManager {
         this.map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v12',
-            center: [-84.35, 33.83], 
+            center: [-84.35, 33.73], 
             zoom: 8.8,
             minZoom: 5,
             maxZoom: 16,

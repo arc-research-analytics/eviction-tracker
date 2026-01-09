@@ -12,7 +12,7 @@ class LayerManager {
      */
     async loadTractBoundaries() {
         try {
-            const response = await fetch('data/fulton_tracts.geojson');
+            const response = await fetch('data/region_tracts.geojson');
             if (!response.ok) throw new Error('Failed to fetch tract boundaries');
             
             const tractData = await response.json();
@@ -120,7 +120,7 @@ class LayerManager {
      */
     async loadCountyOutline() {
         try {
-            const response = await fetch('data/fulton_county.geojson');
+            const response = await fetch('data/region_boundaries.geojson');
             if (!response.ok) throw new Error('Failed to fetch county outline');
             
             const countyData = await response.json();
@@ -164,7 +164,7 @@ class LayerManager {
      */
     async loadCountyMask() {
         try {
-            const response = await fetch('data/fulton_mask.geojson');
+            const response = await fetch('data/region_mask.geojson');
             if (!response.ok) throw new Error('Failed to fetch county mask');
             
             const maskData = await response.json();
@@ -202,7 +202,7 @@ class LayerManager {
             }
 
             // Get fresh tract data
-            const response = await fetch('data/fulton_tracts.geojson');
+            const response = await fetch('data/region_tracts.geojson');
             if (!response.ok) throw new Error('Failed to fetch tract boundaries');
             
             const tractData = await response.json();
@@ -281,7 +281,7 @@ class LayerManager {
         const displayMode = this.dataLoader.getDisplayMode();
 
         if (displayMode === 'rate') {
-            // Rate-based color scale (already percentage values from database)
+            // Rate-based color scale (percentage values 0-12)
             return [
                 'interpolate',
                 ['linear'],

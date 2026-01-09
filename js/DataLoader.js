@@ -46,7 +46,7 @@ class DataLoader {
                 data.forEach(item => {
                     this.evictionData[item.tractid] = {
                         totalfilings: item.totalfilings || 0,
-                        filingRate: item['filing-rate'] || 0
+                        filingRate: (item['filing-rate'] || 0) * 100  // Convert decimal to percentage
                     };
                 });
             }

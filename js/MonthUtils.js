@@ -27,9 +27,9 @@ class MonthUtils {
     async loadAvailableMonths(supabaseClient) {
         try {
             // Get all available months from new table structure
-            const [tractData, monthData] = await Promise.all([
-                supabaseClient.from('evictions-tract').select('filemonth').limit(1000),
-                supabaseClient.from('evictions-month').select('filemonth').limit(1000)
+            const [tractData, countyData] = await Promise.all([
+                supabaseClient.from('evictions-tract').select('filemonth'),
+                supabaseClient.from('evictions-county').select('filemonth')
             ]);
 
             // Combine and deduplicate months
@@ -39,8 +39,8 @@ class MonthUtils {
                     allMonths.add(row.filemonth);
                 });
             }
-            if (monthData.data) {
-                monthData.data.forEach(row => {
+            if (countyData.data) {
+                countyData.data.forEach(row => {
                     allMonths.add(row.filemonth);
                 });
             }
@@ -201,27 +201,26 @@ class MonthUtils {
     }
 
     /**
-     * Get the current month index (defaults to config MAX_DATE or latest available month)
+     * Get the current month index (defaults to config DEFAULT_DATE or latest available month)
      */
     getCurrentMonthIndex() {
         if (this.monthList.length === 0) {
             return 0; // Default to first month if no data loaded yet
         }
-        
-        // Check if config MAX_DATE exists and use it as the preferred default
-        const configMaxDate = (typeof CONFIG !== 'undefined' && CONFIG.dateRange) 
-            ? CONFIG.dateRange.MAX_DATE 
+
+        // Check if config DEFAULT_DATE exists and use it as the preferred default
+        const configDefaultDate = (typeof CONFIG !== 'undefined' && CONFIG.dateRange)
+            ? CONFIG.dateRange.DEFAULT_DATE
             : null;
 
-
-        if (configMaxDate) {
-            const maxIndex = this.dbMonthToSliderIndex(configMaxDate);
-            if (maxIndex !== -1) {
-                return maxIndex;
+        if (configDefaultDate) {
+            const defaultIndex = this.dbMonthToSliderIndex(configDefaultDate);
+            if (defaultIndex !== -1) {
+                return defaultIndex;
             }
         }
 
-        // Fallback to last available month if config MAX_DATE not found in data
+        // Fallback to last available month if config DEFAULT_DATE not found in data
         return this.monthList.length - 1;
     }
 
