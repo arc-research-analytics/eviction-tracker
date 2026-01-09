@@ -174,7 +174,7 @@ class PopupManager {
 
                     // Use rate or count based on display mode
                     if (displayMode === 'rate') {
-                        chartData.values.push(record['filing-rate'] || 0);
+                        chartData.values.push((record['filing-rate'] || 0) * 100);  // Convert decimal to percentage
                     } else {
                         chartData.values.push(record.totalfilings || 0);
                     }
@@ -310,7 +310,7 @@ class PopupManager {
                                 const displayMode = popupManager.dataLoader.getDisplayMode();
 
                                 if (displayMode === 'rate') {
-                                    // Format as percentage (already multiplied by 100 in database)
+                                    // Format as percentage (multiplied by 100 when loaded)
                                     return `${value.toFixed(2)}% filing rate`;
                                 } else {
                                     return `${value} eviction${value !== 1 ? 's' : ''}`;
@@ -453,7 +453,7 @@ class PopupManager {
      */
     getYAxisTitle() {
         const displayMode = this.dataLoader.getDisplayMode();
-        return displayMode === 'rate' ? 'Filing Rate' : 'Evictions';
+        return displayMode === 'rate' ? 'Filing Rate (%)' : 'Evictions';
     }
 
     /**

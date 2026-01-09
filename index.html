@@ -58,15 +58,16 @@
       </a>
     </header>
 
+    <!-- County Trends button in top-left -->
+    <wa-button id="countyTrendsBtn" variant="neutral">
+      <wa-icon name="arrow-down"></wa-icon>
+      Show County Trends
+    </wa-button>
+
     <!-- Month and total evictions display -->
     <div id="monthDisplay">
       <div id="monthText">Loading</div>
       <div id="totalText">and calculating total...</div>
-
-      <!-- insert a button that says "Show County Trends" that exposes a Web Awesome drawer that opens from the top -->
-      <wa-button id="countyTrendsBtn" variant="neutral">
-        Show County Trends
-      </wa-button>
     </div>
 
     <!-- Full-screen loading overlay -->
@@ -131,7 +132,7 @@
 
     <!-- County Trends drawer (slides in from top) -->
     <wa-drawer
-      label="Monthly County Eviction Filings (Raw Count)"
+      label="Monthly County Eviction Filings"
       placement="top"
       id="countyTrendsDrawer"
       class="county-trends-drawer"
@@ -143,8 +144,11 @@
           <!-- insert text below the chart explaining the grey vertical line -->
           <div class="chart-explanation">
             <p style="font-size: 16px">
-              Vertical dashed line represents the period selected on the map's
-              time slider.
+              <i
+                >Vertical dashed line represents the period selected on the
+                map's time slider. Click a county in the legend above to hide it
+                from the chart.</i
+              >
             </p>
           </div>
         </div>

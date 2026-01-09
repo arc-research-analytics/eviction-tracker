@@ -7,7 +7,8 @@ const CONFIG = {
         accessToken: 'pk.eyJ1Ijoid3dyaWdodDIxIiwiYSI6ImNtZmZweTc2ZjBnbGEyeHB3dmRqZGg4dHcifQ.AU-tVnuPpaoQP2icjuFqkg',
     },
     dateRange: {
-        START_DATE: '2016-01',  
-        MAX_DATE: '2025-05'     
+        START_DATE: '2017-01',   // Start of slider range
+        MAX_DATE: '2025-12',     // End of slider range
+        DEFAULT_DATE: '2024-06'  // Default month shown on load
     }
 };
