@@ -269,6 +269,7 @@ class LayerManager {
                 id: 'county-label-text',
                 type: 'symbol',
                 source: 'county-labels',
+                maxzoom: 12,
                 layout: {
                     'text-field': ['get', 'NAME'],
                     'text-font': ['DIN Pro Bold Italic', 'Arial Unicode MS Bold'],

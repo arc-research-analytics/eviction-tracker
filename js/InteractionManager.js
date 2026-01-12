@@ -108,16 +108,8 @@ class InteractionManager {
         this.map.on('dragstart', () => {
             this.tooltipManager.hide();
 
-            // Clear hover state
-            if (this.hoveredFeatureId && this.hoveredFeatureId !== this.selectedTractId) {
-                this.map.setFeatureState(
-                    { source: 'eviction-tracts', id: this.hoveredFeatureId },
-                    { hovered: false }
-                );
-            }
-
-            // Hide hover border
-            this.hoveredFeatureId = null;
+            // Hide hover border but keep the transparent fill during drag
+            // (The hovered state will be cleared naturally on mouseleave)
             this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], '']);
         });
 
