@@ -218,15 +218,15 @@ header a {
     color: #333;
 }
 
-/* About button anchored at bottom-left of the map */
-#aboutBtn {
-    position: absolute;
-    left: 10px;
-    bottom: 70px;
-    z-index: 2;
+/* Drawer footer buttons - spread them apart */
+.drawer-footer-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
 }
 
-/* Style the Web Awesome button using shadow parts */
+/* About button inside Options drawer footer */
 #aboutBtn::part(base) {
     background-color: rgba(255, 255, 255, 0.9);
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
@@ -259,6 +259,29 @@ header a {
 }
 
 #countyTrendsBtn::part(base):hover {
+    background-color: #252525;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Options button in lower-left */
+#optionsBtn {
+    position: absolute;
+    left: 10px;
+    bottom: 37px;
+    z-index: 1000;
+}
+
+#optionsBtn::part(base) {
+    color: #252525;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 5px;
+    font-weight: 900;
+    font-size: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+#optionsBtn::part(base):hover {
     background-color: #252525;
     color: rgba(255, 255, 255, 0.9);
 }
@@ -434,4 +457,9 @@ header a {
 
 .mapboxgl-ctrl-attrib-inner {
     display: none;
+}
+
+/* Options drawer content */
+.options-content {
+    padding: 10px;
 }

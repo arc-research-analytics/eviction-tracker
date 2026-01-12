@@ -24,7 +24,7 @@ class MapManager {
         this.map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v12',
-            center: [-84.35, 33.73], 
+            center: [-84.35, 33.73],
             zoom: 8.8,
             minZoom: 5,
             maxZoom: 16,
@@ -33,11 +33,6 @@ class MapManager {
                 [-81.63130485272346, 35.63768859763405]   // Northeast coordinates [lng, lat]
             ]
         });
-
-        // Add Mapbox scale bar
-        this.map.addControl(new mapboxgl.ScaleControl({
-            unit: 'imperial',
-        }));
 
         // Initialize sub-managers after map is created
         this.initializeSubManagers();

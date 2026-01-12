@@ -60,8 +60,14 @@
 
     <!-- County Trends button in top-left -->
     <wa-button id="countyTrendsBtn" variant="neutral">
+      County Trends
       <wa-icon name="arrow-down"></wa-icon>
-      Show County Trends
+    </wa-button>
+
+    <!-- Options button in lower-left -->
+    <wa-button id="optionsBtn" variant="neutral">
+      Options
+      <wa-icon name="arrow-right"></wa-icon>
     </wa-button>
 
     <!-- Month and total evictions display -->
@@ -96,12 +102,7 @@
       <wa-switch id="showRateSwitch" checked>Show as rate</wa-switch>
     </div>
 
-    <!-- About button anchored bottom-left -->
-    <wa-button id="aboutBtn" variant="neutral">
-      <wa-icon name="info-circle"></wa-icon> About
-    </wa-button>
-
-    <!-- About dialog (opened by About button) -->
+    <!-- About dialog (opened by About button inside Options drawer) -->
     <wa-dialog label="About this app" id="aboutDialog">
       <div class="about-dialog">
         <img
@@ -162,6 +163,24 @@
       >
     </wa-drawer>
 
+    <!-- Options drawer (slides in from left) -->
+    <wa-drawer
+      label="Options"
+      placement="start"
+      id="optionsDrawer"
+      class="options-drawer"
+    >
+      <div class="options-content">
+        <p>Options content will go here.</p>
+      </div>
+      <div slot="footer" class="drawer-footer-buttons">
+        <wa-button id="aboutBtn" variant="neutral">
+          <wa-icon name="info-circle"></wa-icon> About
+        </wa-button>
+        <wa-button variant="brand" data-drawer="close">Close</wa-button>
+      </div>
+    </wa-drawer>
+
     <!-- Load config based on environment -->
     <script>
       const isDevelopment =
@@ -218,6 +237,24 @@
           if (dialog && openButton) {
             openButton.addEventListener("click", function () {
               dialog.open = true;
+            });
+          }
+        };
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", setup, { once: true });
+        } else {
+          setup();
+        }
+      })();
+
+      // Wire Options button to open the drawer once DOM is ready
+      (function () {
+        const setup = function () {
+          const drawer = document.getElementById("optionsDrawer");
+          const openButton = document.getElementById("optionsBtn");
+          if (drawer && openButton) {
+            openButton.addEventListener("click", function () {
+              drawer.open = true;
             });
           }
         };
