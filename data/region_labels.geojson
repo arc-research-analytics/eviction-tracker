@@ -3,11 +3,10 @@
 "name": "region_labels",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
-{ "type": "Feature", "properties": { "NAME": "Cobb" }, "geometry": { "type": "Point", "coordinates": [ -84.576676276403361, 33.94147689405191 ] } },
+{ "type": "Feature", "properties": { "NAME": "Cobb" }, "geometry": { "type": "Point", "coordinates": [ -84.55865734352389, 33.942955806622933 ] } },
 { "type": "Feature", "properties": { "NAME": "Clayton" }, "geometry": { "type": "Point", "coordinates": [ -84.359303734270796, 33.566275466960022 ] } },
-{ "type": "Feature", "properties": { "NAME": "Henry" }, "geometry": { "type": "Point", "coordinates": [ -84.154200212582865, 33.453009541354625 ] } },
 { "type": "Feature", "properties": { "NAME": "Gwinnett" }, "geometry": { "type": "Point", "coordinates": [ -84.030428671193548, 33.949294796678558 ] } },
 { "type": "Feature", "properties": { "NAME": "Fulton" }, "geometry": { "type": "Point", "coordinates": [ -84.470740739115129, 33.73031321666933 ] } },
-{ "type": "Feature", "properties": { "NAME": "DeKalb" }, "geometry": { "type": "Point", "coordinates": [ -84.212533044963578, 33.757434124239964 ] } }
+{ "type": "Feature", "properties": { "NAME": "DeKalb" }, "geometry": { "type": "Point", "coordinates": [ -84.244146822724389, 33.789743490436152 ] } }
 ]
 }
