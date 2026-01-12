@@ -147,6 +147,21 @@ class MapManager {
     }
 
     /**
+     * Load and display county name labels
+     */
+    async loadCountyLabels() {
+        if (!this.layerManager) {
+            throw new Error('LayerManager not initialized');
+        }
+
+        try {
+            await this.layerManager.loadCountyLabels();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
      * Refresh tract boundaries with new eviction data
      */
     async refreshTractBoundaries() {

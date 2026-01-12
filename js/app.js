@@ -74,6 +74,7 @@ class EvictionApp {
                     await this.mapManager.loadTractBoundaries();
                     await this.mapManager.loadCountyMask();
                     await this.mapManager.loadCountyOutline();
+                    await this.mapManager.loadCountyLabels();
                 } catch (error) {
                     this.uiManager.hideLoading();
                     this.uiManager.showError('Failed to load map data');

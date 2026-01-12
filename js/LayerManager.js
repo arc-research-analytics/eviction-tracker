@@ -238,6 +238,50 @@ class LayerManager {
     }
 
     /**
+     * Load and display county name labels
+     */
+    async loadCountyLabels() {
+        try {
+            console.log('Loading county labels...');
+            const response = await fetch('data/region_labels.geojson');
+            if (!response.ok) throw new Error('Failed to fetch county labels');
+
+            const labelData = await response.json();
+            console.log('County label data loaded:', labelData);
+
+            // Add county labels source
+            this.map.addSource('county-labels', {
+                type: 'geojson',
+                data: labelData
+            });
+            console.log('County labels source added');
+
+            // Add symbol layer for county names
+            this.map.addLayer({
+                id: 'county-label-text',
+                type: 'symbol',
+                source: 'county-labels',
+                layout: {
+                    'text-field': ['get', 'NAME'],
+                    'text-font': ['DIN Pro Bold Italic', 'Arial Unicode MS Bold'],
+                    'text-size': 16,
+                    'text-transform': 'uppercase'
+                },
+                paint: {
+                    'text-color': '#000000',
+                    'text-halo-color': '#ffffff',
+                    'text-halo-width': 2
+                }
+            });
+            console.log('County label layer added successfully');
+
+        } catch (error) {
+            console.error('Error loading county labels:', error);
+            throw new Error('Failed to load county labels');
+        }
+    }
+
+    /**
      * Load all layers in the correct order
      */
     async loadAllLayers() {
@@ -246,6 +290,7 @@ class LayerManager {
             await this.loadCountyMask();    // Bottom layer (grey mask)
             await this.loadTractBoundaries(); // Middle layers (tract data)
             await this.loadCountyOutline(); // Top layer (county border)
+            await this.loadCountyLabels();  // Top layer (county names)
 
             return true;
         } catch (error) {
