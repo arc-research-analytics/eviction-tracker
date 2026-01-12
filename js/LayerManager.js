@@ -24,6 +24,9 @@ class LayerManager {
                 const tractId = feature.properties.GEOID;
                 const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
 
+                // Set feature id for feature-state support
+                feature.id = tractId;
+
                 // Set both total filings and filing rate
                 feature.properties.totalfilings = tractData.totalfilings || 0;
                 feature.properties.filingrate = tractData.filingRate || 0;
@@ -71,7 +74,12 @@ class LayerManager {
             source: 'eviction-tracts',
             paint: {
                 'fill-color': this.getColorScale(),
-                'fill-opacity': 0.7
+                'fill-opacity': [
+                    'case',
+                    ['boolean', ['feature-state', 'hovered'], false], 0,
+                    ['boolean', ['feature-state', 'selected'], false], 0,
+                    0.7
+                ]
             }
         });
 
@@ -214,6 +222,9 @@ class LayerManager {
                 const tractId = feature.properties.GEOID;
                 const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
 
+                // Set feature id for feature-state support
+                feature.id = tractId;
+
                 // Set both total filings and filing rate
                 feature.properties.totalfilings = tractData.totalfilings || 0;
                 feature.properties.filingrate = tractData.filingRate || 0;
@@ -242,19 +253,16 @@ class LayerManager {
      */
     async loadCountyLabels() {
         try {
-            console.log('Loading county labels...');
             const response = await fetch('data/region_labels.geojson');
             if (!response.ok) throw new Error('Failed to fetch county labels');
 
             const labelData = await response.json();
-            console.log('County label data loaded:', labelData);
 
             // Add county labels source
             this.map.addSource('county-labels', {
                 type: 'geojson',
                 data: labelData
             });
-            console.log('County labels source added');
 
             // Add symbol layer for county names
             this.map.addLayer({
@@ -273,7 +281,6 @@ class LayerManager {
                     'text-halo-width': 2
                 }
             });
-            console.log('County label layer added successfully');
 
         } catch (error) {
             console.error('Error loading county labels:', error);
