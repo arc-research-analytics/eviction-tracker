@@ -126,6 +126,25 @@
       >
     </wa-dialog>
 
+    <!-- Mobile welcome dialog (auto-opens on mobile devices) -->
+    <wa-dialog label="Welcome!" id="mobileWelcomeDialog" style="--width: calc(100vw - 40px); max-width: 500px;">
+      <div style="line-height: 1.6; color: #333">
+        <p style="margin-top: 0">
+          Welcome to the Metro Atlanta Eviction Tracker, built by the Atlanta
+          Regional Commission's Research and Innovation Team! Please note that
+          some features have been disabled on mobile devices for optimal
+          performance.
+        </p>
+        <p style="margin-bottom: 0">
+          For the full experience with all features including county trends and
+          detailed statistics, please open this web page on a laptop or tablet.
+        </p>
+      </div>
+      <wa-button slot="footer" variant="brand" data-dialog="close"
+        >Got it</wa-button
+      >
+    </wa-dialog>
+
     <!-- County Trends drawer (slides in from top) -->
     <wa-drawer
       label="Monthly County Eviction Filings"
@@ -186,6 +205,11 @@
           <wa-switch id="showRateSwitch" checked
             >Show map as filing rate</wa-switch
           >
+        </div>
+
+        <!-- Mobile slider container (slider moved here on mobile) -->
+        <div id="mobileSliderContainer" style="margin-top: 40px; display: none; text-align: center;">
+          <p style="margin-bottom: 15px; font-size: 14px; color: #333; font-weight: 600;">Change eviction filing time period on map</p>
         </div>
       </div>
       <div slot="footer" class="drawer-footer-buttons">
@@ -271,6 +295,54 @@
             openButton.addEventListener("click", function () {
               drawer.open = true;
             });
+          }
+        };
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", setup, { once: true });
+        } else {
+          setup();
+        }
+      })();
+
+      // Auto-open mobile welcome dialog on mobile devices
+      (function () {
+        const setup = function () {
+          const dialog = document.getElementById("mobileWelcomeDialog");
+          // Check if viewport width is mobile-sized (768px or less)
+          if (dialog && window.innerWidth <= 768) {
+            // Small delay to ensure dialog is fully initialized
+            setTimeout(() => {
+              dialog.open = true;
+            }, 500);
+          }
+        };
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", setup, { once: true });
+        } else {
+          setup();
+        }
+      })();
+
+      // Set slider orientation to vertical on mobile devices and move to drawer
+      (function () {
+        const setup = function () {
+          const slider = document.getElementById("monthSlider");
+          const sliderContainer = document.getElementById("sliderContainer");
+          const mobileSliderContainer = document.getElementById("mobileSliderContainer");
+
+          if (slider && sliderContainer && mobileSliderContainer && window.innerWidth <= 768) {
+            slider.setAttribute("orientation", "vertical");
+            // Remove the helper text label on mobile
+            slider.removeAttribute("label");
+
+            // Move the entire slider container into the drawer on mobile
+            mobileSliderContainer.appendChild(sliderContainer);
+            mobileSliderContainer.style.display = "block";
+            sliderContainer.style.position = "relative";
+            sliderContainer.style.left = "auto";
+            sliderContainer.style.bottom = "auto";
+            sliderContainer.style.transform = "none";
+            sliderContainer.style.margin = "0 auto";
           }
         };
         if (document.readyState === "loading") {
