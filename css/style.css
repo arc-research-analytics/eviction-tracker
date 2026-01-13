@@ -119,6 +119,45 @@ header a {
     border-top: 1px solid #e0e0e0;
 }
 
+/* Gradient legend styles */
+.legend-gradient-container {
+    display: flex;
+    align-items: stretch;
+    margin: 15px 0;
+    height: 180px;
+    position: relative;
+}
+
+.legend-gradient-bar {
+    width: 30px;
+    height: 100%;
+    background: linear-gradient(to top,
+        #ffffcc 0%,    /* Light yellow at bottom */
+        #fed976 25%,   /* Yellow */
+        #fd8d3c 50%,   /* Orange */
+        #e31a1c 75%,   /* Red */
+        #800026 100%   /* Dark red at top */
+    );
+    border: 1px solid #cccccc; /* Light gray outline */
+    border-radius: 3px;
+}
+
+.legend-gradient-labels {
+    position: relative;
+    flex: 1;
+    margin-left: 8px;
+    height: 100%;
+}
+
+.legend-gradient-label {
+    position: absolute;
+    font-size: 12px;
+    color: #333;
+    font-weight: bold;
+    transform: translateY(-50%);
+    white-space: nowrap;
+}
+
 /* Tooltip styles */
 .tooltip {
     position: absolute;

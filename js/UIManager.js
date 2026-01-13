@@ -84,19 +84,19 @@ class UIManager {
     /**
      * Update the month display with current month and total evictions
      */
-    updateMonthDisplay() {
+    async updateMonthDisplay() {
         const monthText = document.getElementById('monthText');
         const totalText = document.getElementById('totalText');
-        
+
         if (monthText && totalText) {
             const formattedMonth = this.dataLoader.formatMonthDisplay(this.dataLoader.getCurrentMonth());
-            const totalEvictions = this.dataLoader.calculateTotalEvictions();
-            
+            const totalEvictions = await this.dataLoader.calculateTotalEvictions();
+
             // Hide the month text element since we're combining the display
             monthText.style.display = 'none';
-            
+
             // Show combined format in the total text element
-            totalText.innerHTML = `Regional evictions<br/> in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
+            totalText.innerHTML = `Regional eviction filings<br/> in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
         }
     }
 

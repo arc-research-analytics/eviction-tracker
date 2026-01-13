@@ -91,7 +91,7 @@ class EvictionApp {
                 this.uiManager.setLayerManager(this.mapManager.getLayerManager());
 
                 // Update UI components
-                this.uiManager.updateMonthDisplay();
+                await this.uiManager.updateMonthDisplay();
                 this.uiManager.addLegend();
                 
                 // Set up slider functionality
@@ -155,9 +155,9 @@ class EvictionApp {
                 
                 // Refresh map with new data
                 await this.mapManager.refreshTractBoundaries();
-                
+
                 // Update month display
-                this.uiManager.updateMonthDisplay();
+                await this.uiManager.updateMonthDisplay();
                 
                 // Update any open popup's vertical line
                 if (this.popupManager) {

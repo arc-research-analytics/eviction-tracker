@@ -35,26 +35,27 @@ class LayerManager {
          *
          * Configure the breakpoints for the choropleth map colors.
          * Each geography level (tract, school, hex) has separate breakpoints for:
-         *   - rate: Filing rate shown as percentage (0-12% typical range)
+         *   - rate: Filing rate shown as percentage
          *   - count: Raw number of eviction filings
          *
          * Format: [value1, value2, value3, value4, value5]
          * These create 5 color stops from light yellow → yellow → orange → red → dark red
          *
+         * Values calculated using Jenks natural breaks optimization (classes=5)
          * To modify: Change the numeric values below to adjust when colors transition.
          */
         this.colorBreakpoints = {
             tract: {
-                rate: [0, 2, 5, 8, 12],      // Percentage values for filing rate
-                count: [0, 10, 25, 60, 100]  // Number of filings
+                rate: [0, 2.0, 6.0, 10.0, 220],      // Jenks breaks for tract filing rate (%)
+                count: [0, 8, 15, 35, 214]           // Jenks breaks for tract filing count
             },
             school: {
-                rate: [0, 2, 5, 8, 12],        // Percentage values for filing rate
-                count: [0, 50, 100, 200, 400]  // Number of filings (higher - schools cover larger areas)
+                rate: [0, 1.0, 1.5, 2.5, 8.4],       // Jenks breaks for school filing rate (%)
+                count: [0, 50, 125, 215, 822]        // Jenks breaks for school filing count
             },
             hex: {
-                rate: [0, 2, 5, 8, 12],      // Percentage values for filing rate
-                count: [0, 5, 15, 40, 80]    // Number of filings (lower - hexagons cover smaller areas)
+                rate: [0, 1.0, 2.5, 10.0, 550],       // Jenks breaks for hex filing rate (%)
+                count: [0, 10, 30, 60, 251]          // Jenks breaks for hex filing count
             }
         };
 

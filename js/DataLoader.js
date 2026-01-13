@@ -104,12 +104,47 @@ class DataLoader {
     }
 
     /**
-     * Calculate total evictions from current data
+     * Calculate total evictions from county-level data
+     * This ensures the total matches the source data and County Trends chart
      */
-    calculateTotalEvictions() {
-        return Object.values(this.evictionData).reduce((sum, tractData) => {
-            return sum + (tractData.totalfilings || 0);
-        }, 0);
+    async calculateTotalEvictions() {
+        try {
+            // Check if current month is set
+            if (!this.currentMonth) {
+                return 0;
+            }
+
+            // Convert internal format (YY-MM) to Supabase format (YYYY-M) for querying
+            const supabaseMonth = this.monthUtils.convertToSupabaseFormat(this.currentMonth);
+
+            if (!supabaseMonth) {
+                return 0;
+            }
+
+            // Query county-level aggregate data
+            const { data, error } = await this.supabase
+                .from('evictions-county')
+                .select('totalfilings')
+                .eq('filemonth', supabaseMonth);
+
+            if (error) {
+                console.error('Error calculating total evictions:', error);
+                return 0;
+            }
+
+            // Sum all county totals
+            if (data && data.length > 0) {
+                return data.reduce((sum, county) => {
+                    return sum + (county.totalfilings || 0);
+                }, 0);
+            }
+
+            return 0;
+
+        } catch (error) {
+            console.error('Error calculating total evictions:', error);
+            return 0;
+        }
     }
 
     /**
