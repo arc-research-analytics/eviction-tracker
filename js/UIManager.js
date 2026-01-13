@@ -4,8 +4,16 @@
 class UIManager {
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
+        this.layerManager = null; // Will be set after MapManager is initialized
         this.loadingTimeout = null;
         this.isLoading = false;
+    }
+
+    /**
+     * Set the layer manager reference (called after MapManager is initialized)
+     */
+    setLayerManager(layerManager) {
+        this.layerManager = layerManager;
     }
 
     /**
@@ -76,19 +84,19 @@ class UIManager {
     /**
      * Update the month display with current month and total evictions
      */
-    updateMonthDisplay() {
+    async updateMonthDisplay() {
         const monthText = document.getElementById('monthText');
         const totalText = document.getElementById('totalText');
-        
+
         if (monthText && totalText) {
             const formattedMonth = this.dataLoader.formatMonthDisplay(this.dataLoader.getCurrentMonth());
-            const totalEvictions = this.dataLoader.calculateTotalEvictions();
-            
+            const totalEvictions = await this.dataLoader.calculateTotalEvictions();
+
             // Hide the month text element since we're combining the display
             monthText.style.display = 'none';
-            
+
             // Show combined format in the total text element
-            totalText.innerHTML = `Regional evictions<br/> in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
+            totalText.innerHTML = `Regional eviction filings<br/> in ${formattedMonth}: <span style="color: #e31a1c;">${totalEvictions.toLocaleString()}</span>`;
         }
     }
 
@@ -108,70 +116,91 @@ class UIManager {
     }
 
     /**
-     * Update legend content based on display mode
+     * Update legend content based on display mode and geography
      */
     updateLegend(legendElement = null) {
         const legend = legendElement || document.getElementById('mapLegend');
         if (!legend) return;
 
         const displayMode = this.dataLoader.getDisplayMode();
+        const geographyType = this.dataLoader.getGeographyType();
+
+        // Get geography name for legend title
+        const geographyNames = {
+            tract: 'Census Tract',
+            school: 'High School Statistical Area',
+            hex: 'H3 Hexagon'
+        };
+        const geographyName = geographyNames[geographyType] || 'Census Tract';
+
+        // Get breakpoints from layer manager if available, otherwise use defaults
+        let breakpoints;
+        if (this.layerManager && this.layerManager.colorBreakpoints) {
+            breakpoints = this.layerManager.colorBreakpoints[geographyType][displayMode];
+        } else {
+            // Fallback to default tract breakpoints if layerManager not yet initialized
+            breakpoints = displayMode === 'rate' ? [0, 2, 5, 8, 12] : [0, 10, 25, 60, 100];
+        }
+
+        // Get color palette
+        const colors = this.layerManager?.colorPalette || ['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c', '#800026'];
 
         if (displayMode === 'rate') {
             legend.innerHTML = `
-                <h4 style="text-align: center;">Eviction Filing Rate<br/>by Census Tract</h4>
+                <h4 style="text-align: center;">Eviction Filing Rate<br/>by ${geographyName}</h4>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #ffffcc;"></div>
-                    <span>0%</span>
+                    <div class="legend-color" style="background-color: ${colors[0]};"></div>
+                    <span>${breakpoints[0]}%</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #fed976;"></div>
-                    <span>0-2%</span>
+                    <div class="legend-color" style="background-color: ${colors[1]};"></div>
+                    <span>${breakpoints[0]}-${breakpoints[1]}%</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #fd8d3c;"></div>
-                    <span>2-5%</span>
+                    <div class="legend-color" style="background-color: ${colors[2]};"></div>
+                    <span>${breakpoints[1]}-${breakpoints[2]}%</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #e31a1c;"></div>
-                    <span>5-8%</span>
+                    <div class="legend-color" style="background-color: ${colors[3]};"></div>
+                    <span>${breakpoints[2]}-${breakpoints[3]}%</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #800026;"></div>
-                    <span>8%+</span>
+                    <div class="legend-color" style="background-color: ${colors[4]};"></div>
+                    <span>${breakpoints[3]}%+</span>
                 </div>
                 <div class="legend-explanation">
                     "Rate" defined as the total filings
                     divided by the number of renter-
                     occupied housing units in 2023.
-                    
+
                 </div>
             `;
         } else {
             legend.innerHTML = `
-                <h4 style="text-align: center;">Eviction Filings<br/>by Census Tract</h4>
+                <h4 style="text-align: center;">Eviction Filings<br/>by ${geographyName}</h4>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #ffffcc;"></div>
-                    <span>0</span>
+                    <div class="legend-color" style="background-color: ${colors[0]};"></div>
+                    <span>${breakpoints[0]}</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #fed976;"></div>
-                    <span>1-10</span>
+                    <div class="legend-color" style="background-color: ${colors[1]};"></div>
+                    <span>${breakpoints[0] + 1}-${breakpoints[1]}</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #fd8d3c;"></div>
-                    <span>11-25</span>
+                    <div class="legend-color" style="background-color: ${colors[2]};"></div>
+                    <span>${breakpoints[1] + 1}-${breakpoints[2]}</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #e31a1c;"></div>
-                    <span>26-60</span>
+                    <div class="legend-color" style="background-color: ${colors[3]};"></div>
+                    <span>${breakpoints[2] + 1}-${breakpoints[3]}</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background-color: #800026;"></div>
-                    <span>60+</span>
+                    <div class="legend-color" style="background-color: ${colors[4]};"></div>
+                    <span>${breakpoints[3]}+</span>
                 </div>
                 <div class="legend-explanation">
                     Raw eviction count for the given<br/>
-                    month in the census tract.
+                    month in the ${geographyName.toLowerCase()}.
                 </div>
             `;
         }

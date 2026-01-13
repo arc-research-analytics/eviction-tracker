@@ -79,7 +79,7 @@ header a {
 /* Legend */
 .legend {
     position: absolute;
-    bottom: 85px;
+    bottom: 20px;
     right: 20px;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
@@ -119,6 +119,45 @@ header a {
     border-top: 1px solid #e0e0e0;
 }
 
+/* Gradient legend styles */
+.legend-gradient-container {
+    display: flex;
+    align-items: stretch;
+    margin: 15px 0;
+    height: 180px;
+    position: relative;
+}
+
+.legend-gradient-bar {
+    width: 30px;
+    height: 100%;
+    background: linear-gradient(to top,
+        #ffffcc 0%,    /* Light yellow at bottom */
+        #fed976 25%,   /* Yellow */
+        #fd8d3c 50%,   /* Orange */
+        #e31a1c 75%,   /* Red */
+        #800026 100%   /* Dark red at top */
+    );
+    border: 1px solid #cccccc; /* Light gray outline */
+    border-radius: 3px;
+}
+
+.legend-gradient-labels {
+    position: relative;
+    flex: 1;
+    margin-left: 8px;
+    height: 100%;
+}
+
+.legend-gradient-label {
+    position: absolute;
+    font-size: 12px;
+    color: #333;
+    font-weight: bold;
+    transform: translateY(-50%);
+    white-space: nowrap;
+}
+
 /* Tooltip styles */
 .tooltip {
     position: absolute;
@@ -130,8 +169,15 @@ header a {
     pointer-events: none;
     z-index: 1000;
     font-weight: bold;
-    white-space: nowrap;
     width: auto;
+}
+
+.tooltip-school-name {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+    font-weight: bold;
+    color: #ffeb3b;
 }
 
 .tooltip-count {
@@ -175,30 +221,23 @@ header a {
     color: #333;
 }
 
-/* Toggle container positioned above legend */
+/* Toggle container now inside options drawer */
 #toggleContainer {
-    position: absolute;
-    bottom: 20px; /* Position above legend (legend height ~185px + margin) */
-    right: 20px; /* Same right margin as legend */
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 5px;
-    padding: 15px; /* Same padding as legend */
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    border: none;
-    z-index: 1000;
-    text-align: center;
-    width: 200px; /* Same explicit width as legend */
+    padding: 5px 0;
+    text-align: left;
 }
 
 #showRateSwitch {
-    font-size: 14px;
+    font-size: 18px;
     color: #333;
+    /* make the width auto */
+    width: 250px;
 }
 
 /* Slider container at center bottom */
 #sliderContainer {
     position: absolute;
-    bottom: 30px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.9);
@@ -218,15 +257,15 @@ header a {
     color: #333;
 }
 
-/* About button anchored at bottom-left of the map */
-#aboutBtn {
-    position: absolute;
-    left: 10px;
-    bottom: 70px;
-    z-index: 2;
+/* Drawer footer buttons - spread them apart */
+.drawer-footer-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
 }
 
-/* Style the Web Awesome button using shadow parts */
+/* About button inside Options drawer footer */
 #aboutBtn::part(base) {
     background-color: rgba(255, 255, 255, 0.9);
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
@@ -263,7 +302,34 @@ header a {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* ARC Logo positioned beside the legend */
+/* Options button in lower-left */
+#optionsBtn {
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
+    z-index: 1000;
+}
+
+#optionsBtn::part(base) {
+    color: #252525;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 5px;
+    font-weight: 900;
+    font-size: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+#optionsBtn::part(base):hover {
+    background-color: #252525;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+a.mapboxgl-ctrl-logo {
+    display: none !important;
+  }  
+
+/* ARC Logo position */
 #arcLogo {
     position: absolute;
     bottom: 30px;
@@ -434,4 +500,14 @@ header a {
 
 .mapboxgl-ctrl-attrib-inner {
     display: none;
+}
+
+/* Options drawer content */
+.options-content {
+    padding: 20px;
+}
+
+/* Geography selector styling */
+#geographySelector {
+    margin-bottom: 20px;
 }

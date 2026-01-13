@@ -11,6 +11,7 @@ class PopupManager {
         this.tractCoordinates = null; // Store the tract's geographic coordinates
         this.mapMoveListener = null; // Store map move event listener
         this.currentTractId = null; // Store current tract ID for easy access
+        this.currentTractName = null; // Store current tract name for heading updates
     }
 
     /**
@@ -26,10 +27,11 @@ class PopupManager {
         try {
             this.isLoading = true;
 
-            // Store the tract ID and geographic coordinates from the click event
+            // Store the tract ID, name, and geographic coordinates from the click event
             this.currentTractId = tractId;
+            this.currentTractName = tractName;
             this.tractCoordinates = clickEvent.lngLat;
-            
+
             // Create popup element with loading state
             this.currentPopup = this.createPopupElement(tractName);
             document.body.appendChild(this.currentPopup);
@@ -59,9 +61,14 @@ class PopupManager {
     createPopupElement(tractName) {
         const popup = document.createElement('div');
         popup.className = 'tract-popup';
+        const geographyType = this.dataLoader.getGeographyType();
+        const geographyLabel = this.getGeographyLabel(geographyType);
+        const displayMode = this.dataLoader.getDisplayMode();
+        const headingText = displayMode === 'rate' ? 'Monthly Filing Rate in' : 'Monthly Filings in';
+
         popup.innerHTML = `
             <div class="popup-header">
-                <h3 class="tract-name">Monthly Filings in ${tractName || 'Census Tract'}</h3>
+                <h3 class="tract-name">${headingText} ${tractName || geographyLabel}</h3>
                 <button class="popup-close" type="button">&times;</button>
             </div>
             <div class="popup-content">
@@ -77,14 +84,14 @@ class PopupManager {
                 </div>
             </div>
         `;
-        
+
         // Add close button event listener
         const closeBtn = popup.querySelector('.popup-close');
         closeBtn.addEventListener('click', () => this.closePopup());
-        
+
         // Close popup when clicking outside
         document.addEventListener('click', this.handleOutsideClick.bind(this), true);
-        
+
         return popup;
     }
 
@@ -147,14 +154,18 @@ class PopupManager {
     }
 
     /**
-     * Load historical eviction data for a specific tract
+     * Load historical eviction data for a specific location
      */
     async loadHistoricalData(tractId) {
         try {
+            // Get current geography configuration
+            const geographyType = this.dataLoader.getGeographyType();
+            const config = this.dataLoader.geographyConfig[geographyType];
+
             const { data, error } = await this.dataLoader.supabase
-                .from('evictions-tract')
-                .select('filemonth, totalfilings, filing-rate')
-                .eq('tractid', tractId)
+                .from(config.table)
+                .select(`filemonth, totalfilings, filing-rate, ${config.idField}`)
+                .eq(config.idField, tractId)
                 .order('filemonth', { ascending: true });
 
             if (error) throw error;
@@ -431,10 +442,11 @@ class PopupManager {
             this.mapMoveListener = null;
         }
         
-        // Clear stored coordinates and tract ID
+        // Clear stored coordinates, tract ID, and tract name
         this.tractCoordinates = null;
         this.currentTractId = null;
-        
+        this.currentTractName = null;
+
         // Remove outside click listener
         document.removeEventListener('click', this.handleOutsideClick.bind(this), true);
     }
@@ -463,6 +475,9 @@ class PopupManager {
         if (!this.currentChart || !this.currentPopup) return;
 
         try {
+            // Update popup heading text based on new display mode
+            this.updatePopupHeading();
+
             // Reload historical data for new display mode
             const historicalData = await this.loadHistoricalData(tractId);
 
@@ -483,26 +498,64 @@ class PopupManager {
     }
 
     /**
-     * Get tract name from properties or generate from ID
+     * Update popup heading text based on current display mode
+     */
+    updatePopupHeading() {
+        if (!this.currentPopup || !this.currentTractName) return;
+
+        const displayMode = this.dataLoader.getDisplayMode();
+        const headingText = displayMode === 'rate' ? 'Monthly Filing Rate in' : 'Monthly Filings in';
+        const geographyType = this.dataLoader.getGeographyType();
+        const geographyLabel = this.getGeographyLabel(geographyType);
+
+        const headingElement = this.currentPopup.querySelector('.tract-name');
+        if (headingElement) {
+            headingElement.textContent = `${headingText} ${this.currentTractName || geographyLabel}`;
+        }
+    }
+
+    /**
+     * Get geography label for popup title
+     */
+    getGeographyLabel(geographyType) {
+        const labels = {
+            tract: 'Census Tract',
+            school: 'School Zone',
+            hex: 'Hexagon'
+        };
+        return labels[geographyType] || 'Location';
+    }
+
+    /**
+     * Get location name from properties based on geography type
      */
     getTractName(properties) {
-        if (properties.GEOID) {
-            // Format as State-County-Tract (e.g., 13-121-007810)
-            const geoid = properties.GEOID;
-            if (geoid.length >= 11) {
-                const state = geoid.slice(0, 2);        // First 2 digits (13)
-                const county = geoid.slice(2, 5);       // Next 3 digits (121)
-                const tract = geoid.slice(5);           // Remaining digits (007810)
-                return `Tract ${state}-${county}-${tract}`;
+        const geographyType = this.dataLoader.getGeographyType();
+
+        if (geographyType === 'tract') {
+            if (properties.GEOID) {
+                // Format as State-County-Tract (e.g., 13-121-007810)
+                const geoid = properties.GEOID;
+                if (geoid.length >= 11) {
+                    const state = geoid.slice(0, 2);        // First 2 digits (13)
+                    const county = geoid.slice(2, 5);       // Next 3 digits (121)
+                    const tract = geoid.slice(5);           // Remaining digits (007810)
+                    return `Tract ${state}-${county}-${tract}`;
+                }
+                return `Tract ${geoid}`;
             }
-            // Fallback if GEOID format is unexpected
-            return `Tract ${geoid}`;
+        } else if (geographyType === 'school') {
+            if (properties.ShortLabel) {
+                return `${properties.ShortLabel} High School`;
+            }
+        } else if (geographyType === 'hex') {
+            if (properties.hex_id) {
+                // Show shortened hex ID for readability
+                return `Hex ${properties.hex_id.substring(0, 10)}...`;
+            }
         }
-        
-        // Try other possible name fields as fallback
-        if (properties.NAME) return `Tract ${properties.NAME}`;
-        if (properties.TRACTCE) return `Tract ${properties.TRACTCE}`;
-        
-        return 'Census Tract';
+
+        // Fallback
+        return this.getGeographyLabel(geographyType);
     }
 }

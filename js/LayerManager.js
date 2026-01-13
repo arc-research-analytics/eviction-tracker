@@ -5,6 +5,92 @@ class LayerManager {
     constructor(map, dataLoader) {
         this.map = map;
         this.dataLoader = dataLoader;
+        this.currentGeography = 'tract'; // Default geography type
+
+        // Mapping from string IDs to numeric feature IDs for feature-state
+        this.featureIdMap = {};
+        this.reverseFeatureIdMap = {};
+
+        // Geography configuration mapping
+        this.geographyConfig = {
+            tract: {
+                file: 'data/region_tracts.geojson',
+                idProperty: 'GEOID',
+                name: 'Census Tract'
+            },
+            school: {
+                file: 'data/region_schools.geojson',
+                idProperty: 'ShortLabel',
+                name: 'High School Attendance Zone'
+            },
+            hex: {
+                file: 'data/region_hex.geojson',
+                idProperty: 'hex_id',
+                name: 'H3 Hexagon'
+            }
+        };
+
+        /**
+         * CHOROPLETH COLOR SCALE BREAKPOINTS
+         *
+         * Configure the breakpoints for the choropleth map colors.
+         * Each geography level (tract, school, hex) has separate breakpoints for:
+         *   - rate: Filing rate shown as percentage
+         *   - count: Raw number of eviction filings
+         *
+         * Format: [value1, value2, value3, value4, value5]
+         * These create 5 color stops from light yellow → yellow → orange → red → dark red
+         *
+         * Values calculated using Jenks natural breaks optimization (classes=5)
+         * To modify: Change the numeric values below to adjust when colors transition.
+         */
+        this.colorBreakpoints = {
+            tract: {
+                rate: [0, 2.0, 6.0, 10.0, 220],      // Jenks breaks for tract filing rate (%)
+                count: [0, 8, 15, 35, 214]           // Jenks breaks for tract filing count
+            },
+            school: {
+                rate: [0, 1.0, 1.5, 2.5, 8.4],       // Jenks breaks for school filing rate (%)
+                count: [0, 50, 125, 215, 822]        // Jenks breaks for school filing count
+            },
+            hex: {
+                rate: [0, 1.0, 2.5, 10.0, 550],       // Jenks breaks for hex filing rate (%)
+                count: [0, 10, 30, 60, 251]          // Jenks breaks for hex filing count
+            }
+        };
+
+        // Color palette used for all breakpoints (light → dark)
+        this.colorPalette = ['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c', '#800026'];
+    }
+
+    /**
+     * Get current geography type
+     */
+    getGeographyType() {
+        return this.currentGeography;
+    }
+
+    /**
+     * Set geography type
+     */
+    setGeographyType(geographyType) {
+        if (this.geographyConfig[geographyType]) {
+            this.currentGeography = geographyType;
+        }
+    }
+
+    /**
+     * Get numeric feature ID from string ID (for feature-state operations)
+     */
+    getNumericFeatureId(stringId) {
+        return this.featureIdMap[stringId];
+    }
+
+    /**
+     * Get string ID from numeric feature ID
+     */
+    getStringFeatureId(numericId) {
+        return this.reverseFeatureIdMap[numericId];
     }
 
     /**
@@ -12,20 +98,36 @@ class LayerManager {
      */
     async loadTractBoundaries() {
         try {
-            const response = await fetch('data/region_tracts.geojson');
-            if (!response.ok) throw new Error('Failed to fetch tract boundaries');
-            
+            const config = this.geographyConfig[this.currentGeography];
+            const response = await fetch(config.file);
+            if (!response.ok) throw new Error(`Failed to fetch ${config.name} boundaries`);
+
             const tractData = await response.json();
             const evictionData = this.dataLoader.getEvictionData();
-            
+
+            // Clear previous ID mappings
+            this.featureIdMap = {};
+            this.reverseFeatureIdMap = {};
+
             // Join eviction data to tract geometries
             let matchedCount = 0;
-            tractData.features.forEach(feature => {
-                const tractId = feature.properties.GEOID;
+            tractData.features.forEach((feature, index) => {
+                const tractId = feature.properties[config.idProperty];
                 const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
 
-                // Set feature id for feature-state support
-                feature.id = tractId;
+                // Set numeric feature id for feature-state support
+                // Use index as the numeric ID to ensure it works for all geography types
+                const numericId = index;
+                feature.id = numericId;
+
+                // Store bidirectional mapping between string ID and numeric ID
+                this.featureIdMap[tractId] = numericId;
+                this.reverseFeatureIdMap[numericId] = tractId;
+
+                // Debug: Log first few feature IDs
+                if (index < 3) {
+                    console.log(`Feature ${index}: stringId="${tractId}", numericId=${numericId}`);
+                }
 
                 // Set both total filings and filing rate
                 feature.properties.totalfilings = tractData.totalfilings || 0;
@@ -67,6 +169,17 @@ class LayerManager {
      * Add all tract-related layers to the map
      */
     addTractLayers() {
+        // Determine which layer to insert before to keep county layers on top
+        // Priority: county-fill (lowest county layer) > county-border > county-label-text
+        let beforeLayerId = null;
+        if (this.map.getLayer('county-fill')) {
+            beforeLayerId = 'county-fill';
+        } else if (this.map.getLayer('county-border')) {
+            beforeLayerId = 'county-border';
+        } else if (this.map.getLayer('county-label-text')) {
+            beforeLayerId = 'county-label-text';
+        }
+
         // Fill layer for tract coloring - use dynamic color scale
         this.map.addLayer({
             id: 'tract-fills',
@@ -81,7 +194,11 @@ class LayerManager {
                     0.7
                 ]
             }
-        });
+        }, beforeLayerId);
+
+        // Debug: Verify layer was created with correct paint properties
+        const layer = this.map.getLayer('tract-fills');
+        console.log('tract-fills layer paint properties:', layer.paint);
 
         // Base border layer for all tracts
         this.map.addLayer({
@@ -93,7 +210,7 @@ class LayerManager {
                 'line-width': 0.8,        // Slightly thicker for clarity
                 'line-opacity': 0.4
             }
-        });
+        }, beforeLayerId);
 
         // Hover border layer
         this.map.addLayer({
@@ -101,12 +218,12 @@ class LayerManager {
             type: 'line',
             source: 'eviction-tracts',
             paint: {
-                'line-color': '#969696',  
-                'line-width': 2,        
+                'line-color': '#969696',
+                'line-width': 2,
                 'line-opacity': 1
             },
-            filter: ['==', ['get', 'GEOID'], ''] // Initially hide all features
-        });
+            filter: ['==', ['get', this.geographyConfig[this.currentGeography].idProperty], ''] // Initially hide all features
+        }, beforeLayerId);
 
         // Selected tract border layer (renders on top of hover)
         this.map.addLayer({
@@ -114,13 +231,13 @@ class LayerManager {
             type: 'line',
             source: 'eviction-tracts',
             paint: {
-                'line-color': '#000000',     
-                'line-width': 2.5,             
+                'line-color': '#000000',
+                'line-width': 2.5,
                 'line-opacity': 1,
-                // 'line-dasharray': [2, 2]     
+                // 'line-dasharray': [2, 2]
             },
-            filter: ['==', ['get', 'GEOID'], ''] // Initially hide all features
-        });
+            filter: ['==', ['get', this.geographyConfig[this.currentGeography].idProperty], ''] // Initially hide all features
+        }, beforeLayerId);
     }
 
     /**
@@ -210,20 +327,30 @@ class LayerManager {
             }
 
             // Get fresh tract data
-            const response = await fetch('data/region_tracts.geojson');
-            if (!response.ok) throw new Error('Failed to fetch tract boundaries');
-            
+            const config = this.geographyConfig[this.currentGeography];
+            const response = await fetch(config.file);
+            if (!response.ok) throw new Error(`Failed to fetch ${config.name} boundaries`);
+
             const tractData = await response.json();
             const evictionData = this.dataLoader.getEvictionData();
-            
+
+            // Clear previous ID mappings
+            this.featureIdMap = {};
+            this.reverseFeatureIdMap = {};
+
             // Join new eviction data to tract geometries
             let matchedCount = 0;
-            tractData.features.forEach(feature => {
-                const tractId = feature.properties.GEOID;
+            tractData.features.forEach((feature, index) => {
+                const tractId = feature.properties[config.idProperty];
                 const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
 
-                // Set feature id for feature-state support
-                feature.id = tractId;
+                // Set numeric feature id for feature-state support
+                const numericId = index;
+                feature.id = numericId;
+
+                // Store bidirectional mapping
+                this.featureIdMap[tractId] = numericId;
+                this.reverseFeatureIdMap[numericId] = tractId;
 
                 // Set both total filings and filing rate
                 feature.properties.totalfilings = tractData.totalfilings || 0;
@@ -307,6 +434,40 @@ class LayerManager {
     }
 
     /**
+     * Remove tract layers and source
+     */
+    removeTractLayers() {
+        // Remove layers in reverse order
+        const layers = ['tract-borders-selected', 'tract-borders-hover', 'tract-borders', 'tract-fills'];
+        layers.forEach(layerId => {
+            if (this.map.getLayer(layerId)) {
+                this.map.removeLayer(layerId);
+            }
+        });
+
+        // Remove source
+        if (this.map.getSource('eviction-tracts')) {
+            this.map.removeSource('eviction-tracts');
+        }
+    }
+
+    /**
+     * Switch geography type and reload layers
+     */
+    async switchGeography(geographyType) {
+        // Set the new geography type
+        this.setGeographyType(geographyType);
+
+        // Remove existing tract layers and source
+        this.removeTractLayers();
+
+        // Reload tract boundaries with new geography
+        const result = await this.loadTractBoundaries();
+
+        return result;
+    }
+
+    /**
      * Check if tract layers are loaded
      */
     areTractLayersLoaded() {
@@ -328,36 +489,29 @@ class LayerManager {
     }
 
     /**
-     * Get color scale based on current display mode
+     * Get color scale based on current geography and display mode
+     * Uses configurable breakpoints from this.colorBreakpoints
      */
     getColorScale() {
         const displayMode = this.dataLoader.getDisplayMode();
+        const geographyType = this.currentGeography;
 
-        if (displayMode === 'rate') {
-            // Rate-based color scale (percentage values 0-12)
-            return [
-                'interpolate',
-                ['linear'],
-                ['get', 'displayvalue'],
-                0, '#ffffcc',      // Light yellow for 0% rate
-                2, '#fed976',      // Yellow for 0-2% rate
-                5, '#fd8d3c',      // Orange for 2-5% rate
-                8, '#e31a1c',      // Red for 5-8% rate
-                12, '#800026'      // Dark red for 8%+ rate
-            ];
-        } else {
-            // Count-based color scale (original)
-            return [
-                'interpolate',
-                ['linear'],
-                ['get', 'displayvalue'],
-                0, '#ffffcc',    // Light yellow for 0 filings
-                10, '#fed976',   // Yellow for low filings (1-10)
-                25, '#fd8d3c',   // Orange for medium filings (11-25)
-                60, '#e31a1c',   // Red for high filings (26-60)
-                100, '#800026'   // Dark red for very high filings (60+)
-            ];
-        }
+        // Get the appropriate breakpoints for this geography and display mode
+        const breakpoints = this.colorBreakpoints[geographyType][displayMode];
+        const colors = this.colorPalette;
+
+        // Build the Mapbox color scale expression
+        // Format: ['interpolate', ['linear'], ['get', 'displayvalue'], value1, color1, value2, color2, ...]
+        return [
+            'interpolate',
+            ['linear'],
+            ['get', 'displayvalue'],
+            breakpoints[0], colors[0],  // Light yellow
+            breakpoints[1], colors[1],  // Yellow
+            breakpoints[2], colors[2],  // Orange
+            breakpoints[3], colors[3],  // Red
+            breakpoints[4], colors[4]   // Dark red
+        ];
     }
 
     /**

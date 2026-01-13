@@ -329,7 +329,7 @@ class CountyTrends {
             y: {
               title: {
                 display: true,
-                text: 'Number of Evictions',
+                text: 'Eviction Filings',
                 font: {
                   size: 14,
                   weight: 'bold'
@@ -370,7 +370,7 @@ class CountyTrends {
                 label: function(context) {
                   const countyName = context.dataset.label;
                   const value = context.parsed.y.toLocaleString();
-                  return `${countyName}: ${value} evictions`;
+                  return `${countyName}: ${value} filings`;
                 }
               }
             }

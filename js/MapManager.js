@@ -24,20 +24,16 @@ class MapManager {
         this.map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v12',
-            center: [-84.35, 33.73], 
+            center: [-84.35, 33.73],
             zoom: 8.8,
             minZoom: 5,
             maxZoom: 16,
             maxBounds: [
                 [-86.13468104043729, 32.48420711310857],  // Southwest coordinates [lng, lat]
                 [-81.63130485272346, 35.63768859763405]   // Northeast coordinates [lng, lat]
-            ]
+            ],
+            attributionControl: false,
         });
-
-        // Add Mapbox scale bar
-        this.map.addControl(new mapboxgl.ScaleControl({
-            unit: 'imperial',
-        }));
 
         // Initialize sub-managers after map is created
         this.initializeSubManagers();
@@ -77,10 +73,11 @@ class MapManager {
 
         // Now we can initialize InteractionManager with all dependencies
         this.interactionManager = new InteractionManager(
-            this.map, 
-            this.dataLoader, 
-            this.tooltipManager, 
-            this.popupManager
+            this.map,
+            this.dataLoader,
+            this.tooltipManager,
+            this.popupManager,
+            this.layerManager
         );
     }
 
@@ -171,6 +168,22 @@ class MapManager {
 
         try {
             const result = await this.layerManager.refreshTractBoundaries();
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Switch geography type and reload layers
+     */
+    async switchGeography(geographyType) {
+        if (!this.layerManager) {
+            throw new Error('LayerManager not initialized');
+        }
+
+        try {
+            const result = await this.layerManager.switchGeography(geographyType);
             return result;
         } catch (error) {
             throw error;

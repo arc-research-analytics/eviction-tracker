@@ -10,6 +10,40 @@ class DataLoader {
         this.currentMonth = null;
         // Display mode: 'count' for raw evictions, 'rate' for filing rates
         this.displayMode = 'rate'; // Default to showing rates
+        // Current geography type
+        this.currentGeography = 'tract';
+
+        // Geography configuration for Supabase tables
+        this.geographyConfig = {
+            tract: {
+                table: 'evictions-tract',
+                idField: 'tractid'
+            },
+            school: {
+                table: 'evictions-school',
+                idField: 'school_id'
+            },
+            hex: {
+                table: 'evictions-hex',
+                idField: 'hex_id'
+            }
+        };
+    }
+
+    /**
+     * Get current geography type
+     */
+    getGeographyType() {
+        return this.currentGeography;
+    }
+
+    /**
+     * Set geography type
+     */
+    setGeographyType(geographyType) {
+        if (this.geographyConfig[geographyType]) {
+            this.currentGeography = geographyType;
+        }
     }
 
     /**
@@ -31,9 +65,12 @@ class DataLoader {
                 return this.evictionData;
             }
 
+            // Get the correct table and ID field for current geography
+            const config = this.geographyConfig[this.currentGeography];
+
             const { data, error } = await this.supabase
-                .from('evictions-tract')
-                .select('tractid, totalfilings, filing-rate, filemonth')
+                .from(config.table)
+                .select(`${config.idField}, totalfilings, filing-rate, filemonth`)
                 .eq('filemonth', supabaseMonth);
 
             if (error) {
@@ -44,13 +81,14 @@ class DataLoader {
             this.evictionData = {};
             if (data) {
                 data.forEach(item => {
-                    this.evictionData[item.tractid] = {
+                    const id = item[config.idField];
+                    this.evictionData[id] = {
                         totalfilings: item.totalfilings || 0,
                         filingRate: (item['filing-rate'] || 0) * 100  // Convert decimal to percentage
                     };
                 });
             }
-            
+
             return this.evictionData;
 
         } catch (error) {
@@ -66,12 +104,47 @@ class DataLoader {
     }
 
     /**
-     * Calculate total evictions from current data
+     * Calculate total evictions from county-level data
+     * This ensures the total matches the source data and County Trends chart
      */
-    calculateTotalEvictions() {
-        return Object.values(this.evictionData).reduce((sum, tractData) => {
-            return sum + (tractData.totalfilings || 0);
-        }, 0);
+    async calculateTotalEvictions() {
+        try {
+            // Check if current month is set
+            if (!this.currentMonth) {
+                return 0;
+            }
+
+            // Convert internal format (YY-MM) to Supabase format (YYYY-M) for querying
+            const supabaseMonth = this.monthUtils.convertToSupabaseFormat(this.currentMonth);
+
+            if (!supabaseMonth) {
+                return 0;
+            }
+
+            // Query county-level aggregate data
+            const { data, error } = await this.supabase
+                .from('evictions-county')
+                .select('totalfilings')
+                .eq('filemonth', supabaseMonth);
+
+            if (error) {
+                console.error('Error calculating total evictions:', error);
+                return 0;
+            }
+
+            // Sum all county totals
+            if (data && data.length > 0) {
+                return data.reduce((sum, county) => {
+                    return sum + (county.totalfilings || 0);
+                }, 0);
+            }
+
+            return 0;
+
+        } catch (error) {
+            console.error('Error calculating total evictions:', error);
+            return 0;
+        }
     }
 
     /**
