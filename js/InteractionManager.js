@@ -2,15 +2,24 @@
  * InteractionManager - Handles mouse interactions, hover effects, and tract selection
  */
 class InteractionManager {
-    constructor(map, dataLoader, tooltipManager, popupManager) {
+    constructor(map, dataLoader, tooltipManager, popupManager, layerManager) {
         this.map = map;
         this.dataLoader = dataLoader;
         this.tooltipManager = tooltipManager;
         this.popupManager = popupManager;
+        this.layerManager = layerManager;
         this.hoveredFeatureId = null;
         this.selectedTractId = null;
-        
+
         this.setupMapInteractions();
+    }
+
+    /**
+     * Get the current ID property name based on geography type
+     */
+    getIdProperty() {
+        const geographyType = this.layerManager.getGeographyType();
+        return this.layerManager.geographyConfig[geographyType].idProperty;
     }
 
     /**
@@ -19,18 +28,30 @@ class InteractionManager {
     setupMapInteractions() {
         // Tooltip on hover enter
         this.map.on('mouseenter', 'tract-fills', (e) => {
-            const tractId = e.features[0].properties.GEOID;
+            const idProperty = this.getIdProperty();
+            const tractId = e.features[0].properties[idProperty];
             this.hoveredFeatureId = tractId;
 
             // Show hover border (only if not selected)
             if (tractId !== this.selectedTractId) {
-                this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+                this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], tractId]);
 
                 // Set hovered state to make fill transparent
-                this.map.setFeatureState(
-                    { source: 'eviction-tracts', id: tractId },
-                    { hovered: true }
-                );
+                // Convert string ID to numeric ID for feature-state
+                const numericId = this.layerManager.getNumericFeatureId(tractId);
+                console.log('Setting hovered state for:', tractId, 'numericId:', numericId);
+                try {
+                    this.map.setFeatureState(
+                        { source: 'eviction-tracts', id: numericId },
+                        { hovered: true }
+                    );
+
+                    // Verify the state was set
+                    const state = this.map.getFeatureState({ source: 'eviction-tracts', id: numericId });
+                    console.log('Feature state after setting:', state);
+                } catch (error) {
+                    console.error('Error setting feature state:', error);
+                }
             }
 
             // Show tooltip with initial content
@@ -41,14 +62,16 @@ class InteractionManager {
         // Update tooltip content and position on mouse move
         this.map.on('mousemove', 'tract-fills', (e) => {
             const properties = e.features[0].properties;
-            const tractId = properties.GEOID;
+            const idProperty = this.getIdProperty();
+            const tractId = properties[idProperty];
 
             // Update hover border if we've moved to a different tract
             if (tractId !== this.hoveredFeatureId) {
                 // Clear previous hover state
                 if (this.hoveredFeatureId && this.hoveredFeatureId !== this.selectedTractId) {
+                    const prevNumericId = this.layerManager.getNumericFeatureId(this.hoveredFeatureId);
                     this.map.setFeatureState(
-                        { source: 'eviction-tracts', id: this.hoveredFeatureId },
+                        { source: 'eviction-tracts', id: prevNumericId },
                         { hovered: false }
                     );
                 }
@@ -56,11 +79,12 @@ class InteractionManager {
                 this.hoveredFeatureId = tractId;
                 // Don't show hover border if this tract is already selected
                 if (tractId !== this.selectedTractId) {
-                    this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+                    this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], tractId]);
 
                     // Set hovered state for new tract
+                    const numericId = this.layerManager.getNumericFeatureId(tractId);
                     this.map.setFeatureState(
-                        { source: 'eviction-tracts', id: tractId },
+                        { source: 'eviction-tracts', id: numericId },
                         { hovered: true }
                     );
                 }
@@ -78,22 +102,25 @@ class InteractionManager {
 
             // Clear hover state to restore fill opacity
             if (this.hoveredFeatureId && this.hoveredFeatureId !== this.selectedTractId) {
+                const numericId = this.layerManager.getNumericFeatureId(this.hoveredFeatureId);
                 this.map.setFeatureState(
-                    { source: 'eviction-tracts', id: this.hoveredFeatureId },
+                    { source: 'eviction-tracts', id: numericId },
                     { hovered: false }
                 );
             }
 
             // Hide hover border
             this.hoveredFeatureId = null;
-            this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], '']);
+            const idProperty = this.getIdProperty();
+            this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], '']);
         });
 
         // Handle tract clicks
         this.map.on('click', 'tract-fills', (e) => {
             if (this.popupManager && e.features && e.features.length > 0) {
                 const feature = e.features[0];
-                const tractId = feature.properties.GEOID;
+                const idProperty = this.getIdProperty();
+                const tractId = feature.properties[idProperty];
                 const tractName = this.popupManager.getTractName(feature.properties);
                 
                 // Update selected tract
@@ -110,7 +137,8 @@ class InteractionManager {
 
             // Hide hover border but keep the transparent fill during drag
             // (The hovered state will be cleared naturally on mouseleave)
-            this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], '']);
+            const idProperty = this.getIdProperty();
+            this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], '']);
         });
 
         // Show tooltip again after drag ends if mouse is still over a tract
@@ -126,18 +154,20 @@ class InteractionManager {
 
             if (features.length > 0) {
                 const feature = features[0];
-                const tractId = feature.properties.GEOID;
+                const idProperty = this.getIdProperty();
+                const tractId = feature.properties[idProperty];
 
                 // Update hover state
                 this.hoveredFeatureId = tractId;
 
                 // Show hover border (only if not selected)
                 if (tractId !== this.selectedTractId) {
-                    this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], tractId]);
+                    this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], tractId]);
 
                     // Set hovered state
+                    const numericId = this.layerManager.getNumericFeatureId(tractId);
                     this.map.setFeatureState(
-                        { source: 'eviction-tracts', id: tractId },
+                        { source: 'eviction-tracts', id: numericId },
                         { hovered: true }
                     );
                 }
@@ -155,13 +185,22 @@ class InteractionManager {
      */
     generateTooltipContent(properties) {
         const filings = properties.totalfilings || 0;
-        
+
         // Get current month in human readable format
         const currentMonth = this.dataLoader.getCurrentMonth();
         const monthUtils = this.dataLoader.getMonthUtils();
         const monthYear = monthUtils.dbMonthToFullReadable(currentMonth);
-        
+
+        // For schools, include the school name at the top
+        const geographyType = this.layerManager.getGeographyType();
+        let schoolNameHtml = '';
+
+        if (geographyType === 'school' && properties.ShortLabel) {
+            schoolNameHtml = `<span class="tooltip-school-name">${properties.ShortLabel} High School</span>`;
+        }
+
         return `
+            ${schoolNameHtml}
             <span class="tooltip-count">${monthYear} evictions: ${filings}</span>
             <span class="tooltip-hint"><i>Click for historic trends</i></span>
         `;
@@ -177,8 +216,9 @@ class InteractionManager {
 
         // Clear previous selected tract's state
         if (this.selectedTractId) {
+            const prevNumericId = this.layerManager.getNumericFeatureId(this.selectedTractId);
             this.map.setFeatureState(
-                { source: 'eviction-tracts', id: this.selectedTractId },
+                { source: 'eviction-tracts', id: prevNumericId },
                 { selected: false }
             );
         }
@@ -187,21 +227,23 @@ class InteractionManager {
         this.selectedTractId = tractId;
 
         // Show selection border for the selected tract
-        this.map.setFilter('tract-borders-selected', ['==', ['get', 'GEOID'], tractId]);
+        const idProperty = this.getIdProperty();
+        this.map.setFilter('tract-borders-selected', ['==', ['get', idProperty], tractId]);
 
         // Set selected state to make fill transparent
+        const numericId = this.layerManager.getNumericFeatureId(tractId);
         this.map.setFeatureState(
-            { source: 'eviction-tracts', id: tractId },
+            { source: 'eviction-tracts', id: numericId },
             { selected: true }
         );
 
         // Hide hover border for selected tract since selection border is now showing
         if (this.hoveredFeatureId === tractId) {
-            this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], '']);
+            this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], '']);
 
             // Clear hover state since selected state takes precedence
             this.map.setFeatureState(
-                { source: 'eviction-tracts', id: tractId },
+                { source: 'eviction-tracts', id: numericId },
                 { hovered: false }
             );
         }
@@ -217,8 +259,9 @@ class InteractionManager {
 
         // Clear selected state to restore fill opacity
         if (this.selectedTractId) {
+            const numericId = this.layerManager.getNumericFeatureId(this.selectedTractId);
             this.map.setFeatureState(
-                { source: 'eviction-tracts', id: this.selectedTractId },
+                { source: 'eviction-tracts', id: numericId },
                 { selected: false }
             );
         }
@@ -227,15 +270,17 @@ class InteractionManager {
         this.selectedTractId = null;
 
         // Hide the selection border
-        this.map.setFilter('tract-borders-selected', ['==', ['get', 'GEOID'], '']);
+        const idProperty = this.getIdProperty();
+        this.map.setFilter('tract-borders-selected', ['==', ['get', idProperty], '']);
 
         // Restore hover border if we're still hovering over a tract
         if (this.hoveredFeatureId) {
-            this.map.setFilter('tract-borders-hover', ['==', ['get', 'GEOID'], this.hoveredFeatureId]);
+            this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], this.hoveredFeatureId]);
 
             // Restore hover state
+            const hoveredNumericId = this.layerManager.getNumericFeatureId(this.hoveredFeatureId);
             this.map.setFeatureState(
-                { source: 'eviction-tracts', id: this.hoveredFeatureId },
+                { source: 'eviction-tracts', id: hoveredNumericId },
                 { hovered: true }
             );
         }

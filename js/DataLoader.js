@@ -10,6 +10,40 @@ class DataLoader {
         this.currentMonth = null;
         // Display mode: 'count' for raw evictions, 'rate' for filing rates
         this.displayMode = 'rate'; // Default to showing rates
+        // Current geography type
+        this.currentGeography = 'tract';
+
+        // Geography configuration for Supabase tables
+        this.geographyConfig = {
+            tract: {
+                table: 'evictions-tract',
+                idField: 'tractid'
+            },
+            school: {
+                table: 'evictions-school',
+                idField: 'school_id'
+            },
+            hex: {
+                table: 'evictions-hex',
+                idField: 'hex_id'
+            }
+        };
+    }
+
+    /**
+     * Get current geography type
+     */
+    getGeographyType() {
+        return this.currentGeography;
+    }
+
+    /**
+     * Set geography type
+     */
+    setGeographyType(geographyType) {
+        if (this.geographyConfig[geographyType]) {
+            this.currentGeography = geographyType;
+        }
     }
 
     /**
@@ -31,9 +65,12 @@ class DataLoader {
                 return this.evictionData;
             }
 
+            // Get the correct table and ID field for current geography
+            const config = this.geographyConfig[this.currentGeography];
+
             const { data, error } = await this.supabase
-                .from('evictions-tract')
-                .select('tractid, totalfilings, filing-rate, filemonth')
+                .from(config.table)
+                .select(`${config.idField}, totalfilings, filing-rate, filemonth`)
                 .eq('filemonth', supabaseMonth);
 
             if (error) {
@@ -44,13 +81,14 @@ class DataLoader {
             this.evictionData = {};
             if (data) {
                 data.forEach(item => {
-                    this.evictionData[item.tractid] = {
+                    const id = item[config.idField];
+                    this.evictionData[id] = {
                         totalfilings: item.totalfilings || 0,
                         filingRate: (item['filing-rate'] || 0) * 100  // Convert decimal to percentage
                     };
                 });
             }
-            
+
             return this.evictionData;
 
         } catch (error) {

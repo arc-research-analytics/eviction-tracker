@@ -130,8 +130,15 @@ header a {
     pointer-events: none;
     z-index: 1000;
     font-weight: bold;
-    white-space: nowrap;
     width: auto;
+}
+
+.tooltip-school-name {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+    font-weight: bold;
+    color: #ffeb3b;
 }
 
 .tooltip-count {
@@ -461,5 +468,10 @@ header a {
 
 /* Options drawer content */
 .options-content {
-    padding: 10px;
+    padding: 20px;
+}
+
+/* Geography selector styling */
+#geographySelector {
+    margin-bottom: 20px;
 }

@@ -96,7 +96,10 @@ class EvictionApp {
 
                 // Set up toggle functionality
                 this.setupToggleFunctionality();
-                
+
+                // Set up geography selector functionality
+                this.setupGeographySelectorFunctionality();
+
                 // Hide loading screen
                 this.uiManager.hideLoading();
             });
@@ -314,6 +317,44 @@ class EvictionApp {
         });
     }
 
+
+    /**
+     * Set up geography selector functionality for switching between geography levels
+     */
+    setupGeographySelectorFunctionality() {
+        const geographySelector = document.getElementById('geographySelector');
+
+        if (geographySelector) {
+            const handleChange = async (event) => {
+                try {
+                    const newGeography = event.target.value;
+
+                    // Show loading
+                    this.uiManager.showLoading(true);
+
+                    // Update geography in DataLoader
+                    this.dataLoader.setGeographyType(newGeography);
+
+                    // Reload eviction data for new geography
+                    await this.dataLoader.loadEvictionData();
+
+                    // Switch geography type and reload map layers
+                    await this.mapManager.switchGeography(newGeography);
+
+                    // Hide loading
+                    this.uiManager.hideLoading();
+
+                } catch (error) {
+                    console.error('Error switching geography:', error);
+                    this.uiManager.hideLoading();
+                    this.uiManager.showError('Failed to switch geography level');
+                }
+            };
+
+            geographySelector.addEventListener('wa-change', handleChange);
+            geographySelector.addEventListener('change', handleChange);
+        }
+    }
 
     /**
      * Initialize map tooltip handler after map layers are loaded

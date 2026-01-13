@@ -92,17 +92,26 @@ class MapTooltipHandler {
         // Use display value and appropriate text based on display mode
         if (this.dataLoader) {
             const displayMode = this.dataLoader.getDisplayMode();
+            const geographyType = this.dataLoader.getGeographyType();
             const displayValue = properties.displayvalue || 0;
+
+            // Build school name prefix if geography is schools
+            let schoolNamePrefix = '';
+            if (geographyType === 'school' && properties.ShortLabel) {
+                schoolNamePrefix = `<span class="tooltip-school-name">${properties.ShortLabel} High School</span>`;
+            }
 
             if (displayMode === 'rate') {
                 // Filing rate is already in percentage format from database
                 const percentageValue = displayValue.toFixed(2);
                 return `
+                    ${schoolNamePrefix}
                     <span class="tooltip-count">Filing rate: ${percentageValue}%</span>
                     <span class="tooltip-hint"><i>Click for historic trends</i></span>
                 `;
             } else {
                 return `
+                    ${schoolNamePrefix}
                     <span class="tooltip-count">Eviction filings: ${displayValue}</span>
                     <span class="tooltip-hint"><i>Click for historic trends</i></span>
                 `;

@@ -5,6 +5,60 @@ class LayerManager {
     constructor(map, dataLoader) {
         this.map = map;
         this.dataLoader = dataLoader;
+        this.currentGeography = 'tract'; // Default geography type
+
+        // Mapping from string IDs to numeric feature IDs for feature-state
+        this.featureIdMap = {};
+        this.reverseFeatureIdMap = {};
+
+        // Geography configuration mapping
+        this.geographyConfig = {
+            tract: {
+                file: 'data/region_tracts.geojson',
+                idProperty: 'GEOID',
+                name: 'Census Tract'
+            },
+            school: {
+                file: 'data/region_schools.geojson',
+                idProperty: 'ShortLabel',
+                name: 'High School Attendance Zone'
+            },
+            hex: {
+                file: 'data/region_hex.geojson',
+                idProperty: 'hex_id',
+                name: 'H3 Hexagon'
+            }
+        };
+    }
+
+    /**
+     * Get current geography type
+     */
+    getGeographyType() {
+        return this.currentGeography;
+    }
+
+    /**
+     * Set geography type
+     */
+    setGeographyType(geographyType) {
+        if (this.geographyConfig[geographyType]) {
+            this.currentGeography = geographyType;
+        }
+    }
+
+    /**
+     * Get numeric feature ID from string ID (for feature-state operations)
+     */
+    getNumericFeatureId(stringId) {
+        return this.featureIdMap[stringId];
+    }
+
+    /**
+     * Get string ID from numeric feature ID
+     */
+    getStringFeatureId(numericId) {
+        return this.reverseFeatureIdMap[numericId];
     }
 
     /**
@@ -12,20 +66,36 @@ class LayerManager {
      */
     async loadTractBoundaries() {
         try {
-            const response = await fetch('data/region_tracts.geojson');
-            if (!response.ok) throw new Error('Failed to fetch tract boundaries');
-            
+            const config = this.geographyConfig[this.currentGeography];
+            const response = await fetch(config.file);
+            if (!response.ok) throw new Error(`Failed to fetch ${config.name} boundaries`);
+
             const tractData = await response.json();
             const evictionData = this.dataLoader.getEvictionData();
-            
+
+            // Clear previous ID mappings
+            this.featureIdMap = {};
+            this.reverseFeatureIdMap = {};
+
             // Join eviction data to tract geometries
             let matchedCount = 0;
-            tractData.features.forEach(feature => {
-                const tractId = feature.properties.GEOID;
+            tractData.features.forEach((feature, index) => {
+                const tractId = feature.properties[config.idProperty];
                 const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
 
-                // Set feature id for feature-state support
-                feature.id = tractId;
+                // Set numeric feature id for feature-state support
+                // Use index as the numeric ID to ensure it works for all geography types
+                const numericId = index;
+                feature.id = numericId;
+
+                // Store bidirectional mapping between string ID and numeric ID
+                this.featureIdMap[tractId] = numericId;
+                this.reverseFeatureIdMap[numericId] = tractId;
+
+                // Debug: Log first few feature IDs
+                if (index < 3) {
+                    console.log(`Feature ${index}: stringId="${tractId}", numericId=${numericId}`);
+                }
 
                 // Set both total filings and filing rate
                 feature.properties.totalfilings = tractData.totalfilings || 0;
@@ -67,6 +137,17 @@ class LayerManager {
      * Add all tract-related layers to the map
      */
     addTractLayers() {
+        // Determine which layer to insert before to keep county layers on top
+        // Priority: county-fill (lowest county layer) > county-border > county-label-text
+        let beforeLayerId = null;
+        if (this.map.getLayer('county-fill')) {
+            beforeLayerId = 'county-fill';
+        } else if (this.map.getLayer('county-border')) {
+            beforeLayerId = 'county-border';
+        } else if (this.map.getLayer('county-label-text')) {
+            beforeLayerId = 'county-label-text';
+        }
+
         // Fill layer for tract coloring - use dynamic color scale
         this.map.addLayer({
             id: 'tract-fills',
@@ -81,7 +162,11 @@ class LayerManager {
                     0.7
                 ]
             }
-        });
+        }, beforeLayerId);
+
+        // Debug: Verify layer was created with correct paint properties
+        const layer = this.map.getLayer('tract-fills');
+        console.log('tract-fills layer paint properties:', layer.paint);
 
         // Base border layer for all tracts
         this.map.addLayer({
@@ -93,7 +178,7 @@ class LayerManager {
                 'line-width': 0.8,        // Slightly thicker for clarity
                 'line-opacity': 0.4
             }
-        });
+        }, beforeLayerId);
 
         // Hover border layer
         this.map.addLayer({
@@ -101,12 +186,12 @@ class LayerManager {
             type: 'line',
             source: 'eviction-tracts',
             paint: {
-                'line-color': '#969696',  
-                'line-width': 2,        
+                'line-color': '#969696',
+                'line-width': 2,
                 'line-opacity': 1
             },
-            filter: ['==', ['get', 'GEOID'], ''] // Initially hide all features
-        });
+            filter: ['==', ['get', this.geographyConfig[this.currentGeography].idProperty], ''] // Initially hide all features
+        }, beforeLayerId);
 
         // Selected tract border layer (renders on top of hover)
         this.map.addLayer({
@@ -114,13 +199,13 @@ class LayerManager {
             type: 'line',
             source: 'eviction-tracts',
             paint: {
-                'line-color': '#000000',     
-                'line-width': 2.5,             
+                'line-color': '#000000',
+                'line-width': 2.5,
                 'line-opacity': 1,
-                // 'line-dasharray': [2, 2]     
+                // 'line-dasharray': [2, 2]
             },
-            filter: ['==', ['get', 'GEOID'], ''] // Initially hide all features
-        });
+            filter: ['==', ['get', this.geographyConfig[this.currentGeography].idProperty], ''] // Initially hide all features
+        }, beforeLayerId);
     }
 
     /**
@@ -210,20 +295,30 @@ class LayerManager {
             }
 
             // Get fresh tract data
-            const response = await fetch('data/region_tracts.geojson');
-            if (!response.ok) throw new Error('Failed to fetch tract boundaries');
-            
+            const config = this.geographyConfig[this.currentGeography];
+            const response = await fetch(config.file);
+            if (!response.ok) throw new Error(`Failed to fetch ${config.name} boundaries`);
+
             const tractData = await response.json();
             const evictionData = this.dataLoader.getEvictionData();
-            
+
+            // Clear previous ID mappings
+            this.featureIdMap = {};
+            this.reverseFeatureIdMap = {};
+
             // Join new eviction data to tract geometries
             let matchedCount = 0;
-            tractData.features.forEach(feature => {
-                const tractId = feature.properties.GEOID;
+            tractData.features.forEach((feature, index) => {
+                const tractId = feature.properties[config.idProperty];
                 const tractData = evictionData[tractId] || { totalfilings: 0, filingRate: 0 };
 
-                // Set feature id for feature-state support
-                feature.id = tractId;
+                // Set numeric feature id for feature-state support
+                const numericId = index;
+                feature.id = numericId;
+
+                // Store bidirectional mapping
+                this.featureIdMap[tractId] = numericId;
+                this.reverseFeatureIdMap[numericId] = tractId;
 
                 // Set both total filings and filing rate
                 feature.properties.totalfilings = tractData.totalfilings || 0;
@@ -304,6 +399,40 @@ class LayerManager {
         } catch (error) {
             throw new Error('Failed to load map layers');
         }
+    }
+
+    /**
+     * Remove tract layers and source
+     */
+    removeTractLayers() {
+        // Remove layers in reverse order
+        const layers = ['tract-borders-selected', 'tract-borders-hover', 'tract-borders', 'tract-fills'];
+        layers.forEach(layerId => {
+            if (this.map.getLayer(layerId)) {
+                this.map.removeLayer(layerId);
+            }
+        });
+
+        // Remove source
+        if (this.map.getSource('eviction-tracts')) {
+            this.map.removeSource('eviction-tracts');
+        }
+    }
+
+    /**
+     * Switch geography type and reload layers
+     */
+    async switchGeography(geographyType) {
+        // Set the new geography type
+        this.setGeographyType(geographyType);
+
+        // Remove existing tract layers and source
+        this.removeTractLayers();
+
+        // Reload tract boundaries with new geography
+        const result = await this.loadTractBoundaries();
+
+        return result;
     }
 
     /**

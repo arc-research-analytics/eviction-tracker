@@ -72,10 +72,11 @@ class MapManager {
 
         // Now we can initialize InteractionManager with all dependencies
         this.interactionManager = new InteractionManager(
-            this.map, 
-            this.dataLoader, 
-            this.tooltipManager, 
-            this.popupManager
+            this.map,
+            this.dataLoader,
+            this.tooltipManager,
+            this.popupManager,
+            this.layerManager
         );
     }
 
@@ -166,6 +167,22 @@ class MapManager {
 
         try {
             const result = await this.layerManager.refreshTractBoundaries();
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Switch geography type and reload layers
+     */
+    async switchGeography(geographyType) {
+        if (!this.layerManager) {
+            throw new Error('LayerManager not initialized');
+        }
+
+        try {
+            const result = await this.layerManager.switchGeography(geographyType);
             return result;
         } catch (error) {
             throw error;
