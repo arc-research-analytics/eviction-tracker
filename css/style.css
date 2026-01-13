@@ -79,7 +79,7 @@ header a {
 /* Legend */
 .legend {
     position: absolute;
-    bottom: 85px;
+    bottom: 20px;
     right: 20px;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
@@ -182,30 +182,23 @@ header a {
     color: #333;
 }
 
-/* Toggle container positioned above legend */
+/* Toggle container now inside options drawer */
 #toggleContainer {
-    position: absolute;
-    bottom: 20px; /* Position above legend (legend height ~185px + margin) */
-    right: 20px; /* Same right margin as legend */
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 5px;
-    padding: 15px; /* Same padding as legend */
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    border: none;
-    z-index: 1000;
-    text-align: center;
-    width: 200px; /* Same explicit width as legend */
+    padding: 5px 0;
+    text-align: left;
 }
 
 #showRateSwitch {
-    font-size: 14px;
+    font-size: 18px;
     color: #333;
+    /* make the width auto */
+    width: 250px;
 }
 
 /* Slider container at center bottom */
 #sliderContainer {
     position: absolute;
-    bottom: 30px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.9);
@@ -273,8 +266,8 @@ header a {
 /* Options button in lower-left */
 #optionsBtn {
     position: absolute;
-    left: 10px;
-    bottom: 37px;
+    left: 20px;
+    bottom: 20px;
     z-index: 1000;
 }
 
@@ -293,7 +286,11 @@ header a {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* ARC Logo positioned beside the legend */
+a.mapboxgl-ctrl-logo {
+    display: none !important;
+  }  
+
+/* ARC Logo position */
 #arcLogo {
     position: absolute;
     bottom: 30px;

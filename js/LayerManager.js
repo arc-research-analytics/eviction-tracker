@@ -29,6 +29,37 @@ class LayerManager {
                 name: 'H3 Hexagon'
             }
         };
+
+        /**
+         * CHOROPLETH COLOR SCALE BREAKPOINTS
+         *
+         * Configure the breakpoints for the choropleth map colors.
+         * Each geography level (tract, school, hex) has separate breakpoints for:
+         *   - rate: Filing rate shown as percentage (0-12% typical range)
+         *   - count: Raw number of eviction filings
+         *
+         * Format: [value1, value2, value3, value4, value5]
+         * These create 5 color stops from light yellow → yellow → orange → red → dark red
+         *
+         * To modify: Change the numeric values below to adjust when colors transition.
+         */
+        this.colorBreakpoints = {
+            tract: {
+                rate: [0, 2, 5, 8, 12],      // Percentage values for filing rate
+                count: [0, 10, 25, 60, 100]  // Number of filings
+            },
+            school: {
+                rate: [0, 2, 5, 8, 12],        // Percentage values for filing rate
+                count: [0, 50, 100, 200, 400]  // Number of filings (higher - schools cover larger areas)
+            },
+            hex: {
+                rate: [0, 2, 5, 8, 12],      // Percentage values for filing rate
+                count: [0, 5, 15, 40, 80]    // Number of filings (lower - hexagons cover smaller areas)
+            }
+        };
+
+        // Color palette used for all breakpoints (light → dark)
+        this.colorPalette = ['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c', '#800026'];
     }
 
     /**
@@ -457,36 +488,29 @@ class LayerManager {
     }
 
     /**
-     * Get color scale based on current display mode
+     * Get color scale based on current geography and display mode
+     * Uses configurable breakpoints from this.colorBreakpoints
      */
     getColorScale() {
         const displayMode = this.dataLoader.getDisplayMode();
+        const geographyType = this.currentGeography;
 
-        if (displayMode === 'rate') {
-            // Rate-based color scale (percentage values 0-12)
-            return [
-                'interpolate',
-                ['linear'],
-                ['get', 'displayvalue'],
-                0, '#ffffcc',      // Light yellow for 0% rate
-                2, '#fed976',      // Yellow for 0-2% rate
-                5, '#fd8d3c',      // Orange for 2-5% rate
-                8, '#e31a1c',      // Red for 5-8% rate
-                12, '#800026'      // Dark red for 8%+ rate
-            ];
-        } else {
-            // Count-based color scale (original)
-            return [
-                'interpolate',
-                ['linear'],
-                ['get', 'displayvalue'],
-                0, '#ffffcc',    // Light yellow for 0 filings
-                10, '#fed976',   // Yellow for low filings (1-10)
-                25, '#fd8d3c',   // Orange for medium filings (11-25)
-                60, '#e31a1c',   // Red for high filings (26-60)
-                100, '#800026'   // Dark red for very high filings (60+)
-            ];
-        }
+        // Get the appropriate breakpoints for this geography and display mode
+        const breakpoints = this.colorBreakpoints[geographyType][displayMode];
+        const colors = this.colorPalette;
+
+        // Build the Mapbox color scale expression
+        // Format: ['interpolate', ['linear'], ['get', 'displayvalue'], value1, color1, value2, color2, ...]
+        return [
+            'interpolate',
+            ['linear'],
+            ['get', 'displayvalue'],
+            breakpoints[0], colors[0],  // Light yellow
+            breakpoints[1], colors[1],  // Yellow
+            breakpoints[2], colors[2],  // Orange
+            breakpoints[3], colors[3],  // Red
+            breakpoints[4], colors[4]   // Dark red
+        ];
     }
 
     /**

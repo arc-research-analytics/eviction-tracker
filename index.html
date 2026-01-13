@@ -97,11 +97,6 @@
       <div id="sliderLabel">May 2025</div>
     </div>
 
-    <!-- Toggle container positioned above legend -->
-    <div id="toggleContainer">
-      <wa-switch id="showRateSwitch" checked>Show as rate</wa-switch>
-    </div>
-
     <!-- About dialog (opened by About button inside Options drawer) -->
     <wa-dialog label="About this app" id="aboutDialog">
       <div class="about-dialog">
@@ -186,6 +181,12 @@
           >
           <wa-radio appearance="button" value="hex">H3 Hexagon</wa-radio>
         </wa-radio-group>
+
+        <div id="toggleContainer" style="margin-top: 40px">
+          <wa-switch id="showRateSwitch" checked
+            >Show map as filing rate</wa-switch
+          >
+        </div>
       </div>
       <div slot="footer" class="drawer-footer-buttons">
         <wa-button id="aboutBtn" variant="neutral">

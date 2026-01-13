@@ -83,10 +83,13 @@ class EvictionApp {
 
                 // Now that tract layers are loaded, set up interactions
                 this.mapManager.setPopupManager(this.popupManager);
-                
+
                 // Initialize map tooltip handler
                 this.initializeMapTooltipHandler();
-                
+
+                // Connect UIManager with LayerManager for dynamic legend updates
+                this.uiManager.setLayerManager(this.mapManager.getLayerManager());
+
                 // Update UI components
                 this.uiManager.updateMonthDisplay();
                 this.uiManager.addLegend();
@@ -340,6 +343,9 @@ class EvictionApp {
 
                     // Switch geography type and reload map layers
                     await this.mapManager.switchGeography(newGeography);
+
+                    // Update legend to reflect new geography
+                    this.uiManager.updateLegend();
 
                     // Hide loading
                     this.uiManager.hideLoading();

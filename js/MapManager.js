@@ -31,7 +31,8 @@ class MapManager {
             maxBounds: [
                 [-86.13468104043729, 32.48420711310857],  // Southwest coordinates [lng, lat]
                 [-81.63130485272346, 35.63768859763405]   // Northeast coordinates [lng, lat]
-            ]
+            ],
+            attributionControl: false,
         });
 
         // Initialize sub-managers after map is created
