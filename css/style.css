@@ -1,6 +1,10 @@
-body {
+html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
+}
+
+body {
     font-family: 'Arial', sans-serif;
 }
 
@@ -510,4 +514,17 @@ a.mapboxgl-ctrl-logo {
 /* Geography selector styling */
 #geographySelector {
     margin-bottom: 20px;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    /* Hide month display box on mobile */
+    #monthDisplay {
+        display: none;
+    }
+
+    /* Reduce header font size on mobile */
+    header {
+        font-size: 18px;
+    }
 }
