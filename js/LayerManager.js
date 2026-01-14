@@ -14,7 +14,7 @@ class LayerManager {
         // Geography configuration mapping
         this.geographyConfig = {
             tract: {
-                file: 'data/region_tracts.geojson',
+                file: 'data/region_tracts_simp.geojson',
                 idProperty: 'GEOID',
                 name: 'Census Tract'
             },

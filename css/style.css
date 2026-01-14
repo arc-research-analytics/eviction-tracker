@@ -8,6 +8,12 @@ body {
     font-family: 'Arial', sans-serif;
 }
 
+/* Hide Web Awesome components until they're defined (prevents flash of unstyled content) */
+wa-dialog:not(:defined),
+wa-drawer:not(:defined) {
+    display: none;
+}
+
 header {
     background-color: #252525;
     color: #fff;
@@ -537,9 +543,21 @@ a.mapboxgl-ctrl-logo {
         height: 100%;
     }
 
-    /* Hide month display box on mobile */
+    /* Make month display smaller on mobile */
     #monthDisplay {
-        display: none;
+        top: 55px;
+        right: 10px;
+        padding: 8px 10px;
+        width: auto;
+        min-width: 100px;
+    }
+
+    #monthText {
+        font-size: 12px;
+    }
+
+    #totalText {
+        font-size: 11px;
     }
 
     /* Reduce header font size on mobile */
@@ -606,7 +624,7 @@ a.mapboxgl-ctrl-logo {
 
     /* Make legend horizontal and centered on mobile */
     .legend {
-        bottom: 10px;
+        bottom: 15px;
         right: auto;
         left: 50%;
         transform: translateX(-50%);
