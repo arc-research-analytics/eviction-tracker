@@ -39,7 +39,6 @@ class InteractionManager {
                 // Set hovered state to make fill transparent
                 // Convert string ID to numeric ID for feature-state
                 const numericId = this.layerManager.getNumericFeatureId(tractId);
-                console.log('Setting hovered state for:', tractId, 'numericId:', numericId);
                 try {
                     this.map.setFeatureState(
                         { source: 'eviction-tracts', id: numericId },
@@ -48,9 +47,7 @@ class InteractionManager {
 
                     // Verify the state was set
                     const state = this.map.getFeatureState({ source: 'eviction-tracts', id: numericId });
-                    console.log('Feature state after setting:', state);
                 } catch (error) {
-                    console.error('Error setting feature state:', error);
                 }
             }
 

@@ -14,7 +14,7 @@ class LayerManager {
         // Geography configuration mapping
         this.geographyConfig = {
             tract: {
-                file: 'data/region_tracts.geojson',
+                file: 'data/region_tracts_simp.geojson',
                 idProperty: 'GEOID',
                 name: 'Census Tract'
             },
@@ -124,11 +124,6 @@ class LayerManager {
                 this.featureIdMap[tractId] = numericId;
                 this.reverseFeatureIdMap[numericId] = tractId;
 
-                // Debug: Log first few feature IDs
-                if (index < 3) {
-                    console.log(`Feature ${index}: stringId="${tractId}", numericId=${numericId}`);
-                }
-
                 // Set both total filings and filing rate
                 feature.properties.totalfilings = tractData.totalfilings || 0;
                 feature.properties.filingrate = tractData.filingRate || 0;
@@ -195,10 +190,6 @@ class LayerManager {
                 ]
             }
         }, beforeLayerId);
-
-        // Debug: Verify layer was created with correct paint properties
-        const layer = this.map.getLayer('tract-fills');
-        console.log('tract-fills layer paint properties:', layer.paint);
 
         // Base border layer for all tracts
         this.map.addLayer({
