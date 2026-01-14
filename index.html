@@ -127,7 +127,11 @@
     </wa-dialog>
 
     <!-- Mobile welcome dialog (auto-opens on mobile devices) -->
-    <wa-dialog label="Welcome!" id="mobileWelcomeDialog" style="--width: calc(100vw - 40px); max-width: 500px;">
+    <wa-dialog
+      label="Welcome!"
+      id="mobileWelcomeDialog"
+      style="--width: calc(100vw - 40px); max-width: 500px"
+    >
       <div style="line-height: 1.6; color: #333">
         <p style="margin-top: 0">
           Welcome to the Metro Atlanta Eviction Tracker, built by the Atlanta
@@ -198,7 +202,7 @@
           <wa-radio appearance="button" value="school"
             >High School Statistical Area</wa-radio
           >
-          <wa-radio appearance="button" value="hex">H3 Hexagon</wa-radio>
+          <wa-radio appearance="button" value="hex">Hexagon</wa-radio>
         </wa-radio-group>
 
         <div id="toggleContainer" style="margin-top: 40px">
@@ -208,8 +212,20 @@
         </div>
 
         <!-- Mobile slider container (slider moved here on mobile) -->
-        <div id="mobileSliderContainer" style="margin-top: 40px; display: none; text-align: center;">
-          <p style="margin-bottom: 15px; font-size: 14px; color: #333; font-weight: 600;">Change eviction filing time period on map</p>
+        <div
+          id="mobileSliderContainer"
+          style="margin-top: 40px; display: none; text-align: center"
+        >
+          <p
+            style="
+              margin-bottom: 15px;
+              font-size: 14px;
+              color: #333;
+              font-weight: 600;
+            "
+          >
+            Change eviction filing time period on map
+          </p>
         </div>
       </div>
       <div slot="footer" class="drawer-footer-buttons">
@@ -328,9 +344,16 @@
         const setup = function () {
           const slider = document.getElementById("monthSlider");
           const sliderContainer = document.getElementById("sliderContainer");
-          const mobileSliderContainer = document.getElementById("mobileSliderContainer");
+          const mobileSliderContainer = document.getElementById(
+            "mobileSliderContainer"
+          );
 
-          if (slider && sliderContainer && mobileSliderContainer && window.innerWidth <= 768) {
+          if (
+            slider &&
+            sliderContainer &&
+            mobileSliderContainer &&
+            window.innerWidth <= 768
+          ) {
             slider.setAttribute("orientation", "vertical");
             // Remove the helper text label on mobile
             slider.removeAttribute("label");
