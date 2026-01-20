@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
     height: 100%;
     margin: 0;
     padding: 0;
@@ -32,17 +33,17 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
+}
 
 header a {
     display: flex;
     align-items: center;
-  }
+}
 
 #headerLogo {
     height: 40px;
     width: auto;
-  }
+}
 
 #map {
     position: absolute;
@@ -94,10 +95,11 @@ header a {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
     padding: 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     border: none;
     z-index: 1000;
-    width: 200px; /* Set explicit width to make it wider */
+    width: 200px;
+    /* Set explicit width to make it wider */
 }
 
 .legend h4 {
@@ -142,13 +144,19 @@ header a {
     width: 30px;
     height: 100%;
     background: linear-gradient(to top,
-        #ffffcc 0%,    /* Light yellow at bottom */
-        #fed976 25%,   /* Yellow */
-        #fd8d3c 50%,   /* Orange */
-        #e31a1c 75%,   /* Red */
-        #800026 100%   /* Dark red at top */
-    );
-    border: 1px solid #cccccc; /* Light gray outline */
+            #ffffcc 0%,
+            /* Light yellow at bottom */
+            #fed976 25%,
+            /* Yellow */
+            #fd8d3c 50%,
+            /* Orange */
+            #e31a1c 75%,
+            /* Red */
+            #800026 100%
+            /* Dark red at top */
+        );
+    border: 1px solid #cccccc;
+    /* Light gray outline */
     border-radius: 3px;
 }
 
@@ -211,7 +219,7 @@ header a {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
     padding: 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     border: none;
     z-index: 1000;
     text-align: center;
@@ -253,7 +261,7 @@ header a {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
     padding: 10px 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     border: none;
     z-index: 1000;
     width: 500px;
@@ -278,7 +286,7 @@ header a {
 /* About button inside Options drawer footer */
 #aboutBtn::part(base) {
     background-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     border: none;
     border-radius: 5px;
     color: #252525;
@@ -294,7 +302,7 @@ header a {
 #countyTrendsBtn {
     position: absolute;
     top: 70px;
-    left: 10px;
+    left: 20px;
     z-index: 1000;
 }
 
@@ -327,7 +335,7 @@ header a {
     border-radius: 5px;
     font-weight: 900;
     font-size: 16px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 #optionsBtn::part(base):hover {
@@ -337,7 +345,7 @@ header a {
 
 a.mapboxgl-ctrl-logo {
     display: none !important;
-  }  
+}
 
 /* ARC Logo position */
 #arcLogo {
@@ -351,7 +359,7 @@ a.mapboxgl-ctrl-logo {
 #arcLogo img {
     height: 60px;
     width: auto;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 /* About dialog content layout */
@@ -364,7 +372,7 @@ a.mapboxgl-ctrl-logo {
 .about-dialog img {
     height: 60px;
     width: auto;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 /* Tract popup styles */
@@ -375,7 +383,8 @@ a.mapboxgl-ctrl-logo {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(0, 0, 0, 0.1);
     z-index: 2000;
-    width: 550px; /* Increased from 460px for better chart visibility */
+    width: 550px;
+    /* Increased from 460px for better chart visibility */
     font-family: 'Arial', sans-serif;
     backdrop-filter: blur(5px);
 }
@@ -425,7 +434,8 @@ a.mapboxgl-ctrl-logo {
 /* Chart container for individual census tract popups (when clicking on tracts) */
 .chart-container {
     position: relative;
-    height: 160px; /* Increased from 120px for better trend visibility */
+    height: 160px;
+    /* Increased from 120px for better trend visibility */
     width: 100%;
     margin-bottom: 10px;
 }
@@ -464,18 +474,24 @@ a.mapboxgl-ctrl-logo {
 
 .county-trends-content {
     padding: 5px;
-    height: calc(100% - 60px); /* Use 100% of drawer height minus header/footer */
-    overflow: hidden; /* Eliminate scroll bars */
-    display: block; /* Remove flexbox to eliminate extra spacing */
+    height: calc(100% - 60px);
+    /* Use 100% of drawer height minus header/footer */
+    overflow: hidden;
+    /* Eliminate scroll bars */
+    display: block;
+    /* Remove flexbox to eliminate extra spacing */
 }
 
 /* Chart container specifically for county-wide trends drawer (when clicking "Show County Trends") */
 .county-chart-container {
     position: relative;
-    height: calc(100% - 30px); /* Fill most of the available content space */
+    height: calc(100% - 30px);
+    /* Fill most of the available content space */
     width: 100%;
-    min-height: 400px; /* Ensure good readability */
-    max-height: calc(100% - 30px); /* Prevent overflow */
+    min-height: 400px;
+    /* Ensure good readability */
+    max-height: calc(100% - 30px);
+    /* Prevent overflow */
 }
 
 .chart-loading {
@@ -483,12 +499,14 @@ a.mapboxgl-ctrl-logo {
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 10px; /* Minimize padding for county trends */
+    padding: 10px;
+    /* Minimize padding for county trends */
     color: #666;
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* Center the loading indicator */
+    transform: translate(-50%, -50%);
+    /* Center the loading indicator */
 }
 
 .chart-loading.hidden {
@@ -496,7 +514,8 @@ a.mapboxgl-ctrl-logo {
 }
 
 .chart-loading span {
-    font-size: 14px; /* Slightly smaller text */
+    font-size: 14px;
+    /* Slightly smaller text */
 }
 
 /* Ensure county trends chart canvas fills container completely */
@@ -524,8 +543,10 @@ a.mapboxgl-ctrl-logo {
 
 /* Mobile responsive styles */
 @media (max-width: 768px) {
+
     /* Disable scrolling and ensure full viewport coverage */
-    html, body {
+    html,
+    body {
         overflow: hidden;
         position: fixed;
         width: 100%;
@@ -666,7 +687,7 @@ a.mapboxgl-ctrl-logo {
         padding: 15px;
         background: rgba(255, 255, 255, 0.95);
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     #mobileSliderContainer #monthSlider {
