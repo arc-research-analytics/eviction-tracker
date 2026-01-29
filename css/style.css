@@ -29,10 +29,11 @@ header {
     top: 0;
     left: 0;
     z-index: 2;
-    opacity: .85;
+    opacity: .95;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-sizing: border-box;
 }
 
 header a {
@@ -242,14 +243,20 @@ header a {
 /* Toggle container now inside options drawer */
 #toggleContainer {
     padding: 5px 0;
-    text-align: left;
+    text-align: center;
+    margin-bottom: 15px;
 }
 
 #showRateSwitch {
     font-size: 18px;
     color: #333;
-    /* make the width auto */
-    width: 250px;
+    width: auto;
+    white-space: nowrap;
+}
+
+/* Drawer controls row (placeholder - download button moved to footer) */
+#drawerControls {
+    display: none;
 }
 
 /* Slider container at center bottom */
@@ -294,6 +301,20 @@ header a {
 }
 
 #aboutBtn::part(base):hover {
+    background-color: #252525;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Download filtered data button - matches About button style */
+#downloadFilteredData::part(base) {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    color: #252525;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#downloadFilteredData::part(base):hover {
     background-color: #252525;
     color: rgba(255, 255, 255, 0.9);
 }
@@ -543,6 +564,11 @@ a.mapboxgl-ctrl-logo {
 
 /* Mobile responsive styles */
 @media (max-width: 768px) {
+
+    /* Hide download button on mobile */
+    #downloadFilteredData {
+        display: none;
+    }
 
     /* Disable scrolling and ensure full viewport coverage */
     html,
