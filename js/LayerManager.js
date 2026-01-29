@@ -50,7 +50,7 @@ class LayerManager {
                 count: [0, 8, 15, 35, 214]           // Jenks breaks for tract filing count
             },
             school: {
-                rate: [0, 1.0, 1.5, 2.5, 8.4],       // Jenks breaks for school filing rate (%)
+                rate: [0, 1.2, 1.5, 2.5, 8.4],       // Jenks breaks for school filing rate (%)
                 count: [0, 50, 125, 215, 822]        // Jenks breaks for school filing count
             },
             hex: {
@@ -298,7 +298,7 @@ class LayerManager {
                 source: 'county-mask',
                 paint: {
                     'fill-color': '#808080',
-                    'fill-opacity': 0.4
+                    'fill-opacity': 0.1
                 }
             });
 
