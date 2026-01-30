@@ -64,7 +64,7 @@ class PopupManager {
         const geographyType = this.dataLoader.getGeographyType();
         const geographyLabel = this.getGeographyLabel(geographyType);
         const displayMode = this.dataLoader.getDisplayMode();
-        const headingText = displayMode === 'rate' ? 'Monthly Filing Rate in' : 'Monthly Filings in';
+        const headingText = displayMode === 'rate' ? 'Monthly Filing Rate In' : 'Monthly Filings In';
 
         popup.innerHTML = `
             <div class="popup-header">
@@ -546,13 +546,10 @@ class PopupManager {
             }
         } else if (geographyType === 'school') {
             if (properties.ShortLabel) {
-                return `${properties.ShortLabel} High School`;
+                return `${properties.ShortLabel} High School Area`;
             }
         } else if (geographyType === 'hex') {
-            if (properties.hex_id) {
-                // Show shortened hex ID for readability
-                return `Hex ${properties.hex_id.substring(0, 10)}...`;
-            }
+            return 'This Hexagon';
         }
 
         // Fallback

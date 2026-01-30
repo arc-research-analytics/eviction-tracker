@@ -103,6 +103,9 @@ class EvictionApp {
                 // Set up geography selector functionality
                 this.setupGeographySelectorFunctionality();
 
+                // Set up download button functionality
+                this.setupDownloadFunctionality();
+
                 // Hide loading screen
                 this.uiManager.hideLoading();
             });
@@ -360,6 +363,114 @@ class EvictionApp {
             geographySelector.addEventListener('wa-change', handleChange);
             geographySelector.addEventListener('change', handleChange);
         }
+    }
+
+    /**
+     * Set up download button functionality
+     */
+    setupDownloadFunctionality() {
+        const downloadBtn = document.getElementById('downloadFilteredData');
+
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', async () => {
+                try {
+                    await this.downloadCurrentData();
+                } catch (error) {
+                    console.error('Error downloading data:', error);
+                    this.uiManager.showError('Failed to download data');
+                }
+            });
+        }
+    }
+
+    /**
+     * Download the currently displayed map data as CSV
+     */
+    async downloadCurrentData() {
+        // Get current state from DataLoader
+        const evictionData = this.dataLoader.getEvictionData();
+        const displayMode = this.dataLoader.getDisplayMode();
+        const geographyType = this.dataLoader.getGeographyType();
+        const currentMonth = this.dataLoader.getCurrentMonth();
+        const monthUtils = this.dataLoader.getMonthUtils();
+
+        // Get geography configuration from LayerManager
+        const layerManager = this.mapManager.getLayerManager();
+        const geoConfig = layerManager.geographyConfig[geographyType];
+
+        // Fetch the GeoJSON to get feature names/properties
+        const response = await fetch(geoConfig.file);
+        if (!response.ok) throw new Error('Failed to fetch geography data');
+        const geoJsonData = await response.json();
+
+        // Build CSV rows
+        const rows = [];
+
+        // Get human-readable month for the data column
+        const monthLabel = monthUtils.dbMonthToHumanReadable(currentMonth);
+
+        // Determine headers based on geography type and display mode
+        let headers;
+        if (geographyType === 'tract') {
+            headers = ['GEOID', 'County FIPS', 'Month', displayMode === 'rate' ? 'Filing Rate (%)' : 'Total Filings'];
+        } else if (geographyType === 'school') {
+            headers = ['School Name', 'Month', displayMode === 'rate' ? 'Filing Rate (%)' : 'Total Filings'];
+        } else if (geographyType === 'hex') {
+            headers = ['Hex ID', 'County', 'Month', displayMode === 'rate' ? 'Filing Rate (%)' : 'Total Filings'];
+        }
+        rows.push(headers);
+
+        // Process each feature from the GeoJSON
+        geoJsonData.features.forEach(feature => {
+            const props = feature.properties;
+            const featureId = props[geoConfig.idProperty];
+            const data = evictionData[featureId] || { totalfilings: 0, filingRate: 0 };
+
+            const value = displayMode === 'rate'
+                ? (data.filingRate || 0).toFixed(2)
+                : (data.totalfilings || 0);
+
+            let row;
+            if (geographyType === 'tract') {
+                row = [props.GEOID, props.COUNTYFP, monthLabel, value];
+            } else if (geographyType === 'school') {
+                row = [`${props.ShortLabel} High School Area`, monthLabel, value];
+            } else if (geographyType === 'hex') {
+                row = [props.hex_id, props.County || '', monthLabel, value];
+            }
+            rows.push(row);
+        });
+
+        // Convert to CSV string
+        const csvContent = rows.map(row =>
+            row.map(cell => {
+                // Escape cells that contain commas or quotes
+                const cellStr = String(cell);
+                if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                    return `"${cellStr.replace(/"/g, '""')}"`;
+                }
+                return cellStr;
+            }).join(',')
+        ).join('\n');
+
+        // Generate filename
+        const humanMonth = monthUtils.dbMonthToHumanReadable(currentMonth).replace(' ', '-');
+        const geoLabel = geographyType === 'tract' ? 'census-tracts'
+            : geographyType === 'school' ? 'school-areas'
+            : 'hexagons';
+        const modeLabel = displayMode === 'rate' ? 'filing-rates' : 'filing-counts';
+        const filename = `eviction-${modeLabel}-${geoLabel}-${humanMonth}.csv`;
+
+        // Trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
     }
 
     /**
