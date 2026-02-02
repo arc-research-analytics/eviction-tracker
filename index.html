@@ -198,6 +198,9 @@
           >
         </div>
 
+        <!-- insert center-aligned horizontal divider between the toggle and the geography selector -->
+        <hr id="drawerDivider" style="margin: 20px auto 30px auto; border: 0; border-top: 1px solid #ccc; width: 80%" />
+
         <wa-radio-group
           id="geographySelector"
           label="Change Map Geography:"
@@ -393,6 +396,21 @@
             sliderContainer.style.bottom = "auto";
             sliderContainer.style.transform = "none";
             sliderContainer.style.margin = "0 auto";
+          }
+        };
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", setup, { once: true });
+        } else {
+          setup();
+        }
+      })();
+
+      // Hide drawer divider on mobile devices
+      (function () {
+        const setup = function () {
+          const drawerDivider = document.getElementById("drawerDivider");
+          if (drawerDivider && window.innerWidth <= 768) {
+            drawerDivider.style.display = "none";
           }
         };
         if (document.readyState === "loading") {

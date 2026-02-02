@@ -200,7 +200,7 @@ class UIManager {
                 </div>
                 <div class="legend-explanation">
                     Raw eviction count for the given<br/>
-                    month in the ${geographyName.toLowerCase()}.
+                    month in the ${geographyName.toLowerCase().replace('h3', 'H3')}.
                 </div>
             `;
         }
