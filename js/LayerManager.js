@@ -19,7 +19,7 @@ class LayerManager {
                 name: 'Census Tract'
             },
             school: {
-                file: 'data/region_schools.geojson',
+                file: 'data/region_schools_hires.geojson',
                 idProperty: 'ShortLabel',
                 name: 'High School Attendance Zone'
             },
