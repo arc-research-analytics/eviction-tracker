@@ -2,6 +2,5 @@ data-hidden/
 data/processed/
 
 .DS_Store
-
 js/config.dev.js
 js/config.js
