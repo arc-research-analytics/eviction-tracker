@@ -103,7 +103,7 @@ class MapTooltipHandler {
 
             if (displayMode === 'rate') {
                 // Filing rate is already in percentage format from database
-                const percentageValue = displayValue.toFixed(2);
+                const percentageValue = displayValue.toFixed(1);
                 return `
                     ${schoolNamePrefix}
                     <span class="tooltip-count">Filing rate: ${percentageValue}%</span>
