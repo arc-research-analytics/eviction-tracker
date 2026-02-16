@@ -12,7 +12,9 @@ class CountyTrends {
     this.dataLoader = dataLoader;
     this.supabase = supabase;
     this.monthlyData = [];
-    
+    this.rangeStartIndex = null;
+    this.rangeEndIndex = null;
+
     this.init();
   }
 
@@ -192,10 +194,20 @@ class CountyTrends {
 
       // Get current slider month for vertical line
       const currentMonth = this.dataLoader.getCurrentMonth();
-      const currentMonthIndex = this.dataLoader.getMonthUtils().dbMonthToSliderIndex(currentMonth);
+      const monthUtils = this.dataLoader.getMonthUtils();
+      const currentMonthIndex = monthUtils.dbMonthToSliderIndex(currentMonth);
+
+      // Compute range indices if in range mode
+      if (this.dataLoader.isInRangeMode()) {
+        this.rangeStartIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getStartMonth());
+        this.rangeEndIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getEndMonth());
+      } else {
+        this.rangeStartIndex = null;
+        this.rangeEndIndex = null;
+      }
 
       // Get month list for moratorium period lookups
-      const allMonths = this.dataLoader.getMonthUtils().getAllMonths();
+      const allMonths = monthUtils.getAllMonths();
 
       // Create custom plugin for vertical lines and moratorium periods
       const countyTrends = this; // Reference to this instance for closure
@@ -253,14 +265,30 @@ class CountyTrends {
             }
           });
 
-          // Draw static vertical line for current month (dashed)
-          if (countyTrends.currentMonthIndex >= 0 && countyTrends.currentMonthIndex < countyTrends.monthlyData.labels.length) {
+          // Draw vertical line(s) for current selection
+          if (countyTrends.rangeStartIndex !== null && countyTrends.rangeEndIndex !== null) {
+            // Range mode: draw two dashed lines at start and end
+            [countyTrends.rangeStartIndex, countyTrends.rangeEndIndex].forEach(idx => {
+              if (idx >= 0 && idx < countyTrends.monthlyData.labels.length) {
+                const xPos = xScale.getPixelForValue(idx);
+                ctx.save();
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(xPos, chartArea.top);
+                ctx.lineTo(xPos, chartArea.bottom);
+                ctx.stroke();
+                ctx.restore();
+              }
+            });
+          } else if (countyTrends.currentMonthIndex >= 0 && countyTrends.currentMonthIndex < countyTrends.monthlyData.labels.length) {
+            // Single month mode: draw single dashed line
             const xPos = xScale.getPixelForValue(countyTrends.currentMonthIndex);
-
             ctx.save();
             ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
             ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]); // Dashed line for current month
+            ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.moveTo(xPos, chartArea.top);
             ctx.lineTo(xPos, chartArea.bottom);
@@ -385,6 +413,15 @@ class CountyTrends {
           }
         }
       });
+      // Update help text based on range mode
+      const explanationEl = document.querySelector('#countyTrendsDrawer .chart-explanation p i');
+      if (explanationEl) {
+        if (this.dataLoader.isInRangeMode()) {
+          explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+        } else {
+          explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+        }
+      }
     } catch (error) {
       this.showError('Failed to render chart');
     }
@@ -430,10 +467,30 @@ class CountyTrends {
 
     // Get new current month from slider
     const currentMonth = this.dataLoader.getCurrentMonth();
-    const newCurrentMonthIndex = this.dataLoader.getMonthUtils().dbMonthToSliderIndex(currentMonth);
+    const monthUtils = this.dataLoader.getMonthUtils();
+    const newCurrentMonthIndex = monthUtils.dbMonthToSliderIndex(currentMonth);
 
     // Update stored index
     this.currentMonthIndex = newCurrentMonthIndex;
+
+    // Update range indices if in range mode
+    if (this.dataLoader.isInRangeMode()) {
+      this.rangeStartIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getStartMonth());
+      this.rangeEndIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getEndMonth());
+    } else {
+      this.rangeStartIndex = null;
+      this.rangeEndIndex = null;
+    }
+
+    // Update help text based on range mode
+    const explanationEl = document.querySelector('#countyTrendsDrawer .chart-explanation p i');
+    if (explanationEl) {
+      if (this.dataLoader.isInRangeMode()) {
+        explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+      } else {
+        explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+      }
+    }
 
     // Trigger chart redraw to show new vertical line position
     this.chart.update('none'); // 'none' for no animation

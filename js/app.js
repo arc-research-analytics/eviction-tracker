@@ -100,6 +100,9 @@ class EvictionApp {
                 // Set up toggle functionality
                 this.setupToggleFunctionality();
 
+                // Set up month mode switch functionality
+                this.setupMonthModeSwitchFunctionality();
+
                 // Set up geography selector functionality
                 this.setupGeographySelectorFunctionality();
 
@@ -143,39 +146,50 @@ class EvictionApp {
         
         // Set up the slider event listener with callback
         this.uiManager.setupSliderListener(async (sliderIndex) => {
-            
+
             try {
-                // Show loading for longer operations (immediate for user interactions)
-                const isCurrentMonth = sliderIndex === this.dataLoader.getMonthUtils().getCurrentMonthIndex();
-                if (!isCurrentMonth) {
+                const monthUtils = this.dataLoader.getMonthUtils();
+
+                if (this.dataLoader.isInRangeMode()) {
+                    // Range mode: read both handle values
+                    const slider = document.getElementById('monthSlider');
+                    const startIndex = parseInt(slider.minValue) || 0;
+                    const endIndex = parseInt(slider.maxValue) || monthUtils.getTotalMonths() - 1;
+
                     this.uiManager.showLoading(true);
-                }
-                
-                
-                // Change month and reload data
-                await this.dataLoader.changeMonthBySliderIndex(sliderIndex);
-                
-                
-                // Refresh map with new data
-                await this.mapManager.refreshTractBoundaries();
 
-                // Update month display
-                await this.uiManager.updateMonthDisplay();
-                
-                // Update any open popup's vertical line
-                if (this.popupManager) {
-                    this.popupManager.updateVerticalLine();
-                }
-                
-                // Update county trends vertical line if drawer is open
-                if (this.countyTrends) {
-                    this.countyTrends.updateVerticalLine();
-                }
-                
-                // Hide loading
-                this.uiManager.hideLoading();
-                
+                    const startMonth = monthUtils.sliderIndexToDbMonth(startIndex);
+                    const endMonth = monthUtils.sliderIndexToDbMonth(endIndex);
 
+                    await this.dataLoader.loadEvictionDataForRange(startMonth, endMonth);
+                    await this.mapManager.refreshTractBoundaries();
+
+                    this.uiManager.updateSliderLabelForRange(startIndex, endIndex);
+                    const total = await this.dataLoader.calculateTotalEvictionsForRange();
+                    this.uiManager.updateMonthDisplayForRange(startMonth, endMonth, total);
+
+                    this.uiManager.hideLoading();
+                } else {
+                    // Single month mode (original behavior)
+                    const isCurrentMonth = sliderIndex === monthUtils.getCurrentMonthIndex();
+                    if (!isCurrentMonth) {
+                        this.uiManager.showLoading(true);
+                    }
+
+                    await this.dataLoader.changeMonthBySliderIndex(sliderIndex);
+                    await this.mapManager.refreshTractBoundaries();
+                    await this.uiManager.updateMonthDisplay();
+
+                    if (this.popupManager) {
+                        this.popupManager.updateVerticalLine();
+                    }
+
+                    if (this.countyTrends) {
+                        this.countyTrends.updateVerticalLine();
+                    }
+
+                    this.uiManager.hideLoading();
+                }
 
             } catch (error) {
                 this.uiManager.hideLoading();
@@ -275,11 +289,11 @@ class EvictionApp {
 
         // Helper to check toggle state
         window.checkToggle = () => {
-            const toggle = document.getElementById('showRateSwitch');
+            const selector = document.getElementById('filingModeSelector');
             const currentMode = this.dataLoader.getDisplayMode();
             return {
-                element: toggle,
-                checked: toggle?.checked,
+                element: selector,
+                selectedValue: selector?.value,
                 displayMode: currentMode
             };
         };
@@ -325,6 +339,81 @@ class EvictionApp {
 
 
     /**
+     * Set up month mode radio selector - when "Custom Month Range" is selected,
+     * disable the filing mode selector and force count mode
+     */
+    setupMonthModeSwitchFunctionality() {
+        const monthModeSelector = document.getElementById('monthModeSelector');
+        const filingModeSelector = document.getElementById('filingModeSelector');
+
+        if (!monthModeSelector || !filingModeSelector) {
+            setTimeout(() => this.setupMonthModeSwitchFunctionality(), 100);
+            return;
+        }
+
+        let lastMode = 'single';
+
+        const handleChange = async (event) => {
+            const newMode = event.target.value;
+            if (newMode === lastMode) return;
+            lastMode = newMode;
+
+            if (newMode === 'range') {
+                // Disable filing mode selector and force count mode
+                this.uiManager.setFilingModeValue('count');
+                this.uiManager.setFilingModeEnabled(false);
+
+                // Enter range mode
+                this.dataLoader.setRangeMode(true);
+                this.dataLoader.setDisplayMode('count');
+
+                // Convert slider to range mode (defaults to Jan 2025 - Oct 2025)
+                this.uiManager.convertSliderToRangeMode();
+
+                // Load initial range data matching the slider defaults
+                this.uiManager.showLoading();
+                const monthUtils = this.dataLoader.getMonthUtils();
+                const defaultStartIdx = monthUtils.dbMonthToSliderIndex('2025-01');
+                const defaultEndIdx = monthUtils.dbMonthToSliderIndex('2025-10');
+                const startMonth = monthUtils.sliderIndexToDbMonth(defaultStartIdx !== -1 ? defaultStartIdx : 0);
+                const endMonth = monthUtils.sliderIndexToDbMonth(defaultEndIdx !== -1 ? defaultEndIdx : monthUtils.getTotalMonths() - 1);
+
+                await this.dataLoader.loadEvictionDataForRange(startMonth, endMonth);
+                await this.mapManager.refreshTractBoundaries();
+                this.mapManager.updateColorScale();
+                this.uiManager.updateLegend();
+
+                const total = await this.dataLoader.calculateTotalEvictionsForRange();
+                this.uiManager.updateMonthDisplayForRange(startMonth, endMonth, total);
+
+                this.uiManager.hideLoading();
+            } else {
+                // Exit range mode
+                this.dataLoader.setRangeMode(false);
+
+                // Convert slider back to single mode
+                this.uiManager.convertSliderToSingleMode();
+
+                // Re-enable filing mode selector and set to count
+                this.uiManager.setFilingModeEnabled(true);
+                this.uiManager.setFilingModeValue('count');
+
+                // Reload single month data
+                this.uiManager.showLoading();
+                await this.dataLoader.loadEvictionData();
+                await this.mapManager.refreshTractBoundaries();
+                this.mapManager.updateColorScale();
+                this.uiManager.updateLegend();
+                await this.uiManager.updateMonthDisplay();
+                this.uiManager.hideLoading();
+            }
+        };
+
+        monthModeSelector.addEventListener('wa-change', handleChange);
+        monthModeSelector.addEventListener('change', handleChange);
+    }
+
+    /**
      * Set up geography selector functionality for switching between geography levels
      */
     setupGeographySelectorFunctionality() {
@@ -341,8 +430,14 @@ class EvictionApp {
                     // Update geography in DataLoader
                     this.dataLoader.setGeographyType(newGeography);
 
-                    // Reload eviction data for new geography
-                    await this.dataLoader.loadEvictionData();
+                    // Reload eviction data respecting current slider mode
+                    if (this.dataLoader.isInRangeMode()) {
+                        const startMonth = this.dataLoader.getStartMonth();
+                        const endMonth = this.dataLoader.getEndMonth();
+                        await this.dataLoader.loadEvictionDataForRange(startMonth, endMonth);
+                    } else {
+                        await this.dataLoader.loadEvictionData();
+                    }
 
                     // Switch geography type and reload map layers
                     await this.mapManager.switchGeography(newGeography);
@@ -406,8 +501,11 @@ class EvictionApp {
         // Build CSV rows
         const rows = [];
 
-        // Get human-readable month for the data column
-        const monthLabel = monthUtils.dbMonthToHumanReadable(currentMonth);
+        // Get human-readable month label for the data column
+        const isRange = this.dataLoader.isInRangeMode();
+        const monthLabel = isRange
+            ? `${monthUtils.dbMonthToHumanReadable(this.dataLoader.getStartMonth())} - ${monthUtils.dbMonthToHumanReadable(this.dataLoader.getEndMonth())}`
+            : monthUtils.dbMonthToHumanReadable(currentMonth);
 
         // Determine headers based on geography type and display mode
         let headers;
@@ -454,12 +552,14 @@ class EvictionApp {
         ).join('\n');
 
         // Generate filename
-        const humanMonth = monthUtils.dbMonthToHumanReadable(currentMonth).replace(' ', '-');
         const geoLabel = geographyType === 'tract' ? 'census-tracts'
             : geographyType === 'school' ? 'school-areas'
             : 'hexagons';
         const modeLabel = displayMode === 'rate' ? 'filing-rates' : 'filing-counts';
-        const filename = `eviction-${modeLabel}-${geoLabel}-${humanMonth}.csv`;
+        const dateLabel = isRange
+            ? `${monthUtils.dbMonthToHumanReadable(this.dataLoader.getStartMonth()).replace(' ', '-')}_to_${monthUtils.dbMonthToHumanReadable(this.dataLoader.getEndMonth()).replace(' ', '-')}`
+            : monthUtils.dbMonthToHumanReadable(currentMonth).replace(' ', '-');
+        const filename = `eviction-${modeLabel}-${geoLabel}-${dateLabel}.csv`;
 
         // Trigger download
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
