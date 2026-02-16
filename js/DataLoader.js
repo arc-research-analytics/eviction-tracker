@@ -12,6 +12,10 @@ class DataLoader {
         this.displayMode = 'rate'; // Default to showing rates
         // Current geography type
         this.currentGeography = 'tract';
+        // Range mode state
+        this.isRangeMode = false;
+        this.startMonth = null;
+        this.endMonth = null;
 
         // Geography configuration for Supabase tables
         this.geographyConfig = {
@@ -357,5 +361,124 @@ class DataLoader {
                 return tractData.totalfilings || 0;
             }
         });
+    }
+
+    /**
+     * Set range mode on/off
+     */
+    setRangeMode(enabled) {
+        this.isRangeMode = enabled;
+        if (enabled) {
+            this.displayMode = 'count';
+        }
+    }
+
+    /**
+     * Check if in range mode
+     */
+    isInRangeMode() {
+        return this.isRangeMode;
+    }
+
+    /**
+     * Get start/end months of range
+     */
+    getStartMonth() { return this.startMonth; }
+    getEndMonth() { return this.endMonth; }
+
+    /**
+     * Get array of month strings between start and end (inclusive)
+     */
+    getMonthsInRange(startMonth, endMonth) {
+        const allMonths = this.monthUtils.getAllMonths();
+        const startIndex = allMonths.indexOf(startMonth);
+        const endIndex = allMonths.indexOf(endMonth);
+        if (startIndex === -1 || endIndex === -1) return [];
+        return allMonths.slice(startIndex, endIndex + 1);
+    }
+
+    /**
+     * Load eviction data for a date range and aggregate totalfilings per feature
+     */
+    async loadEvictionDataForRange(startMonth, endMonth) {
+        try {
+            this.startMonth = startMonth;
+            this.endMonth = endMonth;
+
+            const monthsInRange = this.getMonthsInRange(startMonth, endMonth);
+            if (monthsInRange.length === 0) {
+                this.evictionData = {};
+                return this.evictionData;
+            }
+
+            const supabaseMonths = monthsInRange.map(m =>
+                this.monthUtils.convertToSupabaseFormat(m)
+            );
+
+            const config = this.geographyConfig[this.currentGeography];
+
+            // Paginate to avoid Supabase's default 1,000-row limit
+            const pageSize = 1000;
+            let allData = [];
+            let from = 0;
+
+            while (true) {
+                const { data: page, error } = await this.supabase
+                    .from(config.table)
+                    .select(`${config.idField}, totalfilings, filemonth`)
+                    .in('filemonth', supabaseMonths)
+                    .range(from, from + pageSize - 1);
+
+                if (error) throw error;
+                if (page) allData = allData.concat(page);
+                if (!page || page.length < pageSize) break;
+                from += pageSize;
+            }
+
+            this.evictionData = {};
+            if (allData.length > 0) {
+                allData.forEach(item => {
+                    const id = item[config.idField];
+                    if (!this.evictionData[id]) {
+                        this.evictionData[id] = { totalfilings: 0, filingRate: 0 };
+                    }
+                    this.evictionData[id].totalfilings += (item.totalfilings || 0);
+                });
+            }
+
+            return this.evictionData;
+        } catch (error) {
+            throw new Error('Failed to load eviction data for range');
+        }
+    }
+
+    /**
+     * Calculate total evictions across the date range from county-level data
+     */
+    async calculateTotalEvictionsForRange() {
+        try {
+            if (!this.startMonth || !this.endMonth) return 0;
+
+            const monthsInRange = this.getMonthsInRange(this.startMonth, this.endMonth);
+            if (monthsInRange.length === 0) return 0;
+
+            const supabaseMonths = monthsInRange.map(m =>
+                this.monthUtils.convertToSupabaseFormat(m)
+            );
+
+            const { data, error } = await this.supabase
+                .from('evictions-county')
+                .select('totalfilings')
+                .in('filemonth', supabaseMonths);
+
+            if (error) return 0;
+
+            if (data && data.length > 0) {
+                return data.reduce((sum, county) => sum + (county.totalfilings || 0), 0);
+            }
+            return 0;
+        } catch (error) {
+            return 0;
+        }
     }
 }

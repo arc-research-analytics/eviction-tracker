@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -107,9 +107,11 @@
         />
         <div>
           <div style="font-weight: 600; margin-bottom: 6px">
-            Census Tract Evictions By Month
+            Metro Atlanta Eviction Tracker
           </div>
-          <div style="color: #555; font-size: 14px; line-height: 1.4">
+          <div
+            style="color: hsl(0, 0%, 33%); font-size: 14px; line-height: 1.4"
+          >
             This data visualization was built and is maintained by the Atlanta
             Regional Commission's
             <a
@@ -117,7 +119,10 @@
               target="_blank"
               >Research and Innovation</a
             >
-            Team.
+            Team. Source data comes from Share Fulton Tyler Data and
+            <a href="https://evictionlab.org/" target="_blank"
+              >The Eviction Lab.
+            </a>
           </div>
         </div>
       </div>
@@ -189,53 +194,111 @@
       class="options-drawer"
     >
       <div class="options-content">
-        <div id="toggleContainer">
-          <wa-tooltip for="showRateSwitch"
-            >Toggle off to show filing counts</wa-tooltip
+        <div id="drawerOptionsWrapper">
+          <p class="drawer-section-label">Change Filing Mode:</p>
+          <wa-radio-group
+            id="filingModeSelector"
+            orientation="horizontal"
+            name="filingMode"
+            value="rate"
           >
-          <wa-switch id="showRateSwitch" checked
-            >Show map as filing rate</wa-switch
+            <wa-radio id="filingModeRate" appearance="button" value="rate"
+              >Rate</wa-radio
+            >
+            <wa-radio id="filingModeCount" appearance="button" value="count"
+              >Count</wa-radio
+            >
+          </wa-radio-group>
+          <wa-tooltip
+            for="filingModeRate"
+            placement="bottom"
+            style="--max-width: 100%"
+            >Show map geography as filing rate</wa-tooltip
+          >
+          <wa-tooltip
+            for="filingModeCount"
+            placement="bottom"
+            style="--max-width: 100%"
+            >Show map geography as filing count</wa-tooltip
+          >
+
+          <hr
+            class="drawer-divider"
+            style="
+              margin: 30px auto 30px auto;
+              border: 0;
+              border-top: 1px solid #ccc;
+              width: 100%;
+            "
+          />
+
+          <p class="drawer-section-label">Change Geography Level:</p>
+          <wa-radio-group
+            id="geographySelector"
+            orientation="vertical"
+            name="geography"
+            value="tract"
+            style="max-width: 300px"
+          >
+            <wa-tooltip for="geoTract" placement="right"
+              >2020 Census tract vintage</wa-tooltip
+            >
+            <wa-radio id="geoTract" appearance="button" value="tract"
+              >Census Tract</wa-radio
+            >
+            <wa-tooltip for="geoSchool" placement="right"
+              >Estimation of attendance zones</wa-tooltip
+            >
+            <wa-radio id="geoSchool" appearance="button" value="school"
+              >High School Statistical Area</wa-radio
+            >
+            <wa-tooltip for="geoHex" placement="right"
+              >H3 resolution 7 hexagons</wa-tooltip
+            >
+            <wa-radio id="geoHex" appearance="button" value="hex"
+              >Hexagon</wa-radio
+            >
+          </wa-radio-group>
+
+          <hr
+            class="drawer-divider"
+            style="
+              margin: 30px auto 30px auto;
+              border: 0;
+              border-top: 1px solid #ccc;
+              width: 100%;
+            "
+          />
+
+          <p class="drawer-section-label">Change Slider Mode:</p>
+          <wa-radio-group
+            id="monthModeSelector"
+            orientation="horizontal"
+            name="monthMode"
+            value="single"
+          >
+            <wa-radio id="monthModeSingle" appearance="button" value="single"
+              >Single Month</wa-radio
+            >
+            <wa-radio id="monthModeRange" appearance="button" value="range"
+              >Custom Range</wa-radio
+            >
+          </wa-radio-group>
+
+          <!-- add 2 tooltips for each radio button -->
+          <wa-tooltip
+            for="monthModeSingle"
+            placement="bottom"
+            style="--max-width: 100%"
+            >Show filing rate or counts in single month</wa-tooltip
+          >
+          <wa-tooltip
+            for="monthModeRange"
+            placement="bottom"
+            style="--max-width: 100%"
+            >Show filing counts in a custom month range</wa-tooltip
           >
         </div>
-
-        <!-- insert center-aligned horizontal divider between the toggle and the geography selector -->
-        <hr
-          id="drawerDivider"
-          style="
-            margin: 20px auto 30px auto;
-            border: 0;
-            border-top: 1px solid #ccc;
-            width: 80%;
-          "
-        />
-
-        <wa-radio-group
-          id="geographySelector"
-          label="Change Geography Level:"
-          orientation="vertical"
-          name="geography"
-          value="tract"
-          style="max-width: 300px"
-        >
-          <wa-tooltip for="geoTract" placement="right"
-            >2020 Census tract vintage</wa-tooltip
-          >
-          <wa-radio id="geoTract" appearance="button" value="tract"
-            >Census Tract</wa-radio
-          >
-          <wa-tooltip for="geoSchool" placement="right"
-            >Estimation of attendance zones</wa-tooltip
-          >
-          <wa-radio id="geoSchool" appearance="button" value="school"
-            >High School Statistical Area</wa-radio
-          >
-          <wa-tooltip for="geoHex" placement="right"
-            >H3 resolution 7 hexagons</wa-tooltip
-          >
-          <wa-radio id="geoHex" appearance="button" value="hex"
-            >Hexagon</wa-radio
-          >
-        </wa-radio-group>
 
         <div id="drawerControls">
           <!-- Download button moved to footer -->
@@ -383,7 +446,7 @@
           const slider = document.getElementById("monthSlider");
           const sliderContainer = document.getElementById("sliderContainer");
           const mobileSliderContainer = document.getElementById(
-            "mobileSliderContainer"
+            "mobileSliderContainer",
           );
 
           if (

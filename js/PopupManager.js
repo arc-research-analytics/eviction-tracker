@@ -12,6 +12,8 @@ class PopupManager {
         this.mapMoveListener = null; // Store map move event listener
         this.currentTractId = null; // Store current tract ID for easy access
         this.currentTractName = null; // Store current tract name for heading updates
+        this.rangeStartIndex = null;
+        this.rangeEndIndex = null;
     }
 
     /**
@@ -80,7 +82,9 @@ class PopupManager {
                     <canvas id="trendChart" width="320" height="120"></canvas>
                 </div>
                 <div class="chart-explanation">
-                    Vertical dashed line represents the time period selected by the slider.
+                    ${this.dataLoader.isInRangeMode()
+                        ? 'Vertical dashed lines show the date range selected on the map\'s time slider.'
+                        : 'Vertical dashed line represents the time period selected by the slider.'}
                 </div>
             </div>
         `;
@@ -240,14 +244,38 @@ class PopupManager {
                 const chartArea = chart.chartArea;
                 const xScale = chart.scales.x;
                 
-                // Draw static vertical line for current month (dashed)
-                if (popupManager.currentMonthIndex >= 0) {
+                // Draw vertical line(s) for current selection
+                if (popupManager.rangeStartIndex !== null && popupManager.rangeEndIndex !== null
+                    && popupManager.rangeStartIndex >= 0 && popupManager.rangeEndIndex >= 0) {
+                    // Range mode: draw fill between lines, then two dashed lines
+                    const xStart = xScale.getPixelForValue(popupManager.rangeStartIndex);
+                    const xEnd = xScale.getPixelForValue(popupManager.rangeEndIndex);
+
+                    // Draw semi-transparent fill between the two lines
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(128, 128, 128, 0.12)';
+                    ctx.fillRect(xStart, chartArea.top, xEnd - xStart, chartArea.bottom - chartArea.top);
+                    ctx.restore();
+
+                    // Draw two dashed lines at boundaries
+                    [xStart, xEnd].forEach(xPos => {
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.moveTo(xPos, chartArea.top);
+                        ctx.lineTo(xPos, chartArea.bottom);
+                        ctx.stroke();
+                        ctx.restore();
+                    });
+                } else if (popupManager.currentMonthIndex >= 0) {
+                    // Single month mode: draw single dashed line
                     const xPos = xScale.getPixelForValue(popupManager.currentMonthIndex);
-                    
                     ctx.save();
                     ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
                     ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 5]); // Dashed line for current month
+                    ctx.setLineDash([5, 5]);
                     ctx.beginPath();
                     ctx.moveTo(xPos, chartArea.top);
                     ctx.lineTo(xPos, chartArea.bottom);
@@ -369,6 +397,17 @@ class PopupManager {
         // Store chart data for potential updates
         this.chartData = data;
         this.currentMonthIndex = currentMonthIndex;
+
+        // Compute range indices if in range mode
+        if (this.dataLoader.isInRangeMode()) {
+          const startLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getStartMonth());
+          const endLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getEndMonth());
+          this.rangeStartIndex = data.labels.indexOf(startLabel);
+          this.rangeEndIndex = data.labels.indexOf(endLabel);
+        } else {
+          this.rangeStartIndex = null;
+          this.rangeEndIndex = null;
+        }
     }
 
     /**
@@ -376,18 +415,39 @@ class PopupManager {
      */
     updateVerticalLine() {
         if (!this.currentChart || !this.chartData) return;
-        
+
         // Get new current month
         const currentMonth = this.dataLoader.getCurrentMonth();
         const monthUtils = this.dataLoader.getMonthUtils();
         const currentMonthLabel = monthUtils.dbMonthToHumanReadable(currentMonth);
-        
+
         // Find new index of current month in chart data
         const newCurrentMonthIndex = this.chartData.labels.indexOf(currentMonthLabel);
-        
+
         // Update stored index
         this.currentMonthIndex = newCurrentMonthIndex;
-        
+
+        // Update range indices if in range mode
+        if (this.dataLoader.isInRangeMode()) {
+          const startLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getStartMonth());
+          const endLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getEndMonth());
+          this.rangeStartIndex = this.chartData.labels.indexOf(startLabel);
+          this.rangeEndIndex = this.chartData.labels.indexOf(endLabel);
+        } else {
+          this.rangeStartIndex = null;
+          this.rangeEndIndex = null;
+        }
+
+        // Update help text based on range mode
+        if (this.currentPopup) {
+          const explanationEl = this.currentPopup.querySelector('.chart-explanation');
+          if (explanationEl) {
+            explanationEl.textContent = this.dataLoader.isInRangeMode()
+              ? 'Vertical dashed lines show the date range selected on the map\'s time slider.'
+              : 'Vertical dashed line represents the time period selected by the slider.';
+          }
+        }
+
         // Trigger chart redraw to show new vertical line position
         this.currentChart.update('none'); // 'none' for no animation
     }

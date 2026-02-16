@@ -240,18 +240,19 @@ header a {
     color: #333;
 }
 
-/* Toggle container now inside options drawer */
-#toggleContainer {
-    padding: 5px 0;
-    text-align: center;
-    margin-bottom: 15px;
+/* Wrapper for all drawer option groups - centers all children */
+#drawerOptionsWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-#showRateSwitch {
-    font-size: 17px;
+.drawer-section-label {
+    font-weight: 400;
+    font-size: 16px;
     color: #333;
-    width: auto;
-    white-space: nowrap;
+    margin: 0 0 8px 0;
+    text-align: center;
 }
 
 /* Drawer controls row (placeholder - download button moved to footer) */
@@ -559,7 +560,7 @@ a.mapboxgl-ctrl-logo {
 
 /* Geography selector styling */
 #geographySelector {
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 /* Mobile responsive styles */

@@ -214,13 +214,13 @@ class UIManager {
      */
     matchToggleContainerWidth() {
         const legend = document.getElementById('mapLegend');
-        const toggleContainer = document.getElementById('toggleContainer');
+        const filingModeContainer = document.getElementById('filingModeContainer');
 
-        if (legend && toggleContainer) {
+        if (legend && filingModeContainer) {
             // Wait a brief moment for layout to complete
             setTimeout(() => {
                 const legendWidth = legend.offsetWidth;
-                toggleContainer.style.width = legendWidth + 'px';
+                filingModeContainer.style.width = legendWidth + 'px';
             }, 50);
         }
     }
@@ -241,8 +241,11 @@ class UIManager {
      * Set up slider event listener
      */
     setupSliderListener(onSliderChange) {
+        // Store the callback so it can be reused when replacing the slider
+        this._onSliderChange = onSliderChange;
+
         const slider = document.getElementById('monthSlider');
-        
+
         if (!slider) {
             // Retry after a short delay to ensure Web Awesome components are loaded
             setTimeout(() => this.setupSliderListener(onSliderChange), 100);
@@ -323,98 +326,214 @@ class UIManager {
     }
 
     /**
-     * Set up toggle switch event listener
+     * Convert slider to range mode by replacing the element entirely.
+     * Default range: Jan 2025 to Oct 2025.
+     */
+    convertSliderToRangeMode() {
+        const oldSlider = document.getElementById('monthSlider');
+        if (!oldSlider) return;
+
+        const monthUtils = this.dataLoader.getMonthUtils();
+        const totalMonths = monthUtils.getTotalMonths();
+
+        // Calculate default range indices for Jan 2025 and Oct 2025
+        const defaultStartIndex = monthUtils.dbMonthToSliderIndex('2025-01');
+        const defaultEndIndex = monthUtils.dbMonthToSliderIndex('2025-10');
+        const startIdx = defaultStartIndex !== -1 ? defaultStartIndex : 0;
+        const endIdx = defaultEndIndex !== -1 ? defaultEndIndex : totalMonths - 1;
+
+        // Create a new range slider element
+        const newSlider = document.createElement('wa-slider');
+        newSlider.id = 'monthSlider';
+        newSlider.setAttribute('label', 'Drag handles to select month range:');
+        newSlider.setAttribute('min', '0');
+        newSlider.setAttribute('max', String(totalMonths - 1));
+        newSlider.setAttribute('step', '1');
+        newSlider.setAttribute('range', '');
+        newSlider.setAttribute('min-value', String(startIdx));
+        newSlider.setAttribute('max-value', String(endIdx));
+        newSlider.setAttribute('with-tooltip', '');
+
+        // Replace old slider in the DOM
+        oldSlider.parentNode.replaceChild(newSlider, oldSlider);
+
+        // Set up the value formatter for tooltips once the component is defined
+        customElements.whenDefined('wa-slider').then(() => {
+            newSlider.valueFormatter = (value) => {
+                return monthUtils.sliderIndexToHumanReadable(value) || '';
+            };
+        });
+
+        // Re-attach event listeners for range mode
+        this._attachRangeSliderListeners(newSlider);
+
+        // Update the label
+        this.updateSliderLabelForRange(startIdx, endIdx);
+
+        // Store start/end for return value
+        this._rangeStartIndex = startIdx;
+        this._rangeEndIndex = endIdx;
+    }
+
+    /**
+     * Attach event listeners to the range slider
+     */
+    _attachRangeSliderListeners(slider) {
+        let debounceTimeout = null;
+
+        const handleRangeChange = () => {
+            const startIndex = parseInt(slider.minValue) || 0;
+            const endIndex = parseInt(slider.maxValue) || 0;
+
+            // Update label immediately
+            this.updateSliderLabelForRange(startIndex, endIndex);
+
+            // Debounce data loading
+            if (debounceTimeout) clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                if (this._onSliderChange) {
+                    this._onSliderChange(startIndex);
+                }
+            }, 150);
+        };
+
+        ['input', 'wa-input', 'change', 'wa-change'].forEach(eventType => {
+            slider.addEventListener(eventType, handleRangeChange);
+        });
+    }
+
+    /**
+     * Convert slider back to single month mode by replacing the element.
+     */
+    convertSliderToSingleMode() {
+        const oldSlider = document.getElementById('monthSlider');
+        if (!oldSlider) return;
+
+        const monthUtils = this.dataLoader.getMonthUtils();
+        const currentIndex = monthUtils.getCurrentMonthIndex();
+
+        // Create a new single-value slider
+        const newSlider = document.createElement('wa-slider');
+        newSlider.id = 'monthSlider';
+        newSlider.setAttribute('label', 'Click and drag to change the month:');
+        newSlider.setAttribute('min', '0');
+        newSlider.setAttribute('max', String(monthUtils.getTotalMonths() - 1));
+        newSlider.setAttribute('value', String(currentIndex));
+        newSlider.setAttribute('step', '1');
+
+        // Replace in DOM
+        oldSlider.parentNode.replaceChild(newSlider, oldSlider);
+
+        // Set the value as a property after the component is defined
+        customElements.whenDefined('wa-slider').then(() => {
+            newSlider.value = currentIndex;
+        });
+
+        // Re-attach single-mode event listeners
+        this.setupSliderListener(this._onSliderChange);
+
+        // Update label
+        this.updateSliderLabel(currentIndex);
+    }
+
+    /**
+     * Update slider label for range mode (shows "Jan 2020 - May 2025" format)
+     */
+    updateSliderLabelForRange(startIndex, endIndex) {
+        const sliderLabel = document.getElementById('sliderLabel');
+        if (sliderLabel) {
+            const monthUtils = this.dataLoader.getMonthUtils();
+            const startReadable = monthUtils.sliderIndexToHumanReadable(startIndex);
+            const endReadable = monthUtils.sliderIndexToHumanReadable(endIndex);
+            sliderLabel.textContent = `${startReadable} - ${endReadable}`;
+        }
+    }
+
+    /**
+     * Update month display header for range mode
+     */
+    updateMonthDisplayForRange(startMonth, endMonth, total) {
+        const monthText = document.getElementById('monthText');
+        const totalText = document.getElementById('totalText');
+
+        if (monthText && totalText) {
+            const startFormatted = this.dataLoader.formatMonthDisplay(startMonth);
+            const endFormatted = this.dataLoader.formatMonthDisplay(endMonth);
+
+            monthText.style.display = 'none';
+            totalText.innerHTML = `Regional eviction filings<br/> from ${startFormatted} to ${endFormatted}: ${total.toLocaleString()}`;
+        }
+    }
+
+    /**
+     * Set up filing mode radio group event listener
      */
     setupToggleListener(onToggleChange) {
-        const toggle = document.getElementById('showRateSwitch');
+        const selector = document.getElementById('filingModeSelector');
 
-        if (!toggle) {
-            // Retry after a short delay to ensure Web Awesome components are loaded
+        if (!selector) {
             setTimeout(() => this.setupToggleListener(onToggleChange), 100);
             return;
         }
 
-        // Try multiple event types to find which one works for Web Awesome switch
-        const eventTypes = ['wa-change', 'change', 'input', 'click'];
-
-        // Debounce mechanism to prevent multiple rapid calls
         let isHandling = false;
-        let lastValue = toggle.checked;
+        this._filingModeLastValue = selector.value;
 
-        const handleToggleChange = async (event, eventType) => {
-            // Prevent duplicate/rapid fire events
-            if (isHandling) {
-                return;
-            }
+        const handleChange = async (event) => {
+            if (isHandling) return;
 
-            // Check if value actually changed
-            const currentValue = event.target.checked;
-            if (currentValue === lastValue) {
-                return;
-            }
+            const newValue = event.target.value;
+            if (newValue === this._filingModeLastValue) return;
 
             isHandling = true;
-            lastValue = currentValue;
-
-            const showAsRate = event.target.checked;
-            const newDisplayMode = showAsRate ? 'rate' : 'count';
+            this._filingModeLastValue = newValue;
 
             if (onToggleChange) {
                 try {
-                    await onToggleChange(newDisplayMode);
+                    await onToggleChange(newValue);
                 } catch (error) {
                     this.showError('Failed to update display mode');
                 }
             }
 
-            // Reset handling flag after a short delay
             setTimeout(() => {
                 isHandling = false;
             }, 500);
         };
 
-        // Add listeners for all potential events
-        eventTypes.forEach(eventType => {
-            toggle.addEventListener(eventType, (event) => {
-                handleToggleChange(event, eventType);
+        selector.addEventListener('wa-change', handleChange);
+        selector.addEventListener('change', handleChange);
+    }
+
+    /**
+     * Set the filing mode selector value programmatically
+     */
+    setFilingModeValue(value) {
+        const selector = document.getElementById('filingModeSelector');
+        if (selector) {
+            selector.value = value;
+            selector.setAttribute('value', value);
+            // Also update individual radio checked states
+            const radios = selector.querySelectorAll('wa-radio');
+            radios.forEach(radio => {
+                if (radio.value === value) {
+                    radio.checked = true;
+                } else {
+                    radio.checked = false;
+                }
             });
+            // Sync the tracked value so the change listener stays in sync
+            this._filingModeLastValue = value;
+        }
+    }
+
+    /**
+     * Enable or disable the filing mode selector
+     */
+    setFilingModeEnabled(enabled) {
+        const radios = document.querySelectorAll('#filingModeSelector wa-radio');
+        radios.forEach(radio => {
+            radio.disabled = !enabled;
         });
-
-        // Also try with shadow DOM events
-        if (toggle.shadowRoot) {
-            const shadowToggle = toggle.shadowRoot.querySelector('input[type="checkbox"]');
-            if (shadowToggle) {
-                shadowToggle.addEventListener('change', (event) => {
-                    // Manually update the main element
-                    toggle.checked = event.target.checked;
-                    handleToggleChange({ target: toggle }, 'shadow-change');
-                });
-            }
-        }
-
-        // Backup method: Use MutationObserver to watch for attribute changes
-        if (window.MutationObserver) {
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' &&
-                        (mutation.attributeName === 'checked' || mutation.attributeName === 'aria-checked')) {
-                        const isChecked = toggle.checked || toggle.hasAttribute('checked');
-
-                        // Use same debouncing logic
-                        if (isChecked === lastValue) {
-                            return;
-                        }
-
-                        handleToggleChange({ target: { checked: isChecked } }, 'mutation-observer');
-                    }
-                });
-            });
-
-            observer.observe(toggle, {
-                attributes: true,
-                attributeOldValue: true,
-                attributeFilter: ['checked', 'aria-checked']
-            });
-        }
     }
 }

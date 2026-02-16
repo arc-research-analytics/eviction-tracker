@@ -112,7 +112,7 @@ class MapTooltipHandler {
             } else {
                 return `
                     ${schoolNamePrefix}
-                    <span class="tooltip-count">Eviction filings: ${displayValue}</span>
+                    <span class="tooltip-count">Eviction filings: ${displayValue.toLocaleString()}</span>
                     <span class="tooltip-hint"><i>Click for historic trends</i></span>
                 `;
             }
