@@ -1,6 +1,6 @@
 # Metro Atlanta Eviction Tracker
 
-A web-based data visualization application that maps eviction filings across the Metro Atlanta region. Users can explore eviction patterns by census tract, high school statistical area, or hexagonal grid — viewing either raw filing counts or filing rates over time.
+A web-based data visualization application that maps eviction filings across the Metro Atlanta region. Users can explore eviction patterns by census tract, high school statistical area, or hexagonal grid, viewing either raw filing counts or filing rates over time.
 
 ## Features
 
@@ -44,11 +44,11 @@ For production, create `js/config.js` with production credentials. Neither confi
 
 The `data-hidden/Eviction-Pipeline/eviction_compiler.py` script processes raw eviction records into the format the app expects:
 
-1. Geocodes eviction filings to lat/lon coordinates
-2. Performs spatial joins to assign each filing to a census tract, school zone, and hex cell
+1. Geocoded eviction filings to lat/lon coordinates
+2. Performs spatial joins to assign each filing to a census tract, high school statistical area, and hex cell
 3. Aggregates filings by geography and month
 4. Calculates filing rates using renter-occupied housing unit data
-5. Pushes results to Supabase tables (`evictions-tract`, `evictions-school`, `evictions-hex`, `evictions-county`)
+5. Pushes results to Supabase
 
 ## Project Structure
 
