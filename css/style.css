@@ -387,15 +387,23 @@ a.mapboxgl-ctrl-logo {
 /* About dialog content layout */
 .about-dialog {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    gap: 0;
 }
 
-.about-dialog img {
-    height: 60px;
-    width: auto;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+.about-heading {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 16px 0 6px 0;
 }
+
+.about-body {
+    color: hsl(0, 0%, 33%);
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0;
+}
+
 
 /* Tract popup styles */
 .tract-popup {

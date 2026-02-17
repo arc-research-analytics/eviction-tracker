@@ -98,33 +98,50 @@
     </div>
 
     <!-- About dialog (opened by About button inside Options drawer) -->
-    <wa-dialog label="About this app" id="aboutDialog">
+    <wa-dialog label="About this app" id="aboutDialog" style="--width: 790px">
       <div class="about-dialog">
-        <img
-          src="assets/arc_logo.png"
-          alt="Atlanta Regional Commission logo"
-          style="display: block; margin: 0 auto"
-        />
-        <div>
-          <div style="font-weight: 600; margin-bottom: 6px">
-            Metro Atlanta Eviction Tracker
-          </div>
-          <div
-            style="color: hsl(0, 0%, 33%); font-size: 14px; line-height: 1.4"
+        <h3 class="about-heading" style="margin-top: 0">Acknowledgements</h3>
+        <p class="about-body">
+          Eviction filing data are sourced from county court records, in
+          partnership with the
+          <a href="https://evictionlab.org/" target="_blank"
+            >The Eviction Lab</a
           >
-            This data visualization was built and is maintained by the Atlanta
-            Regional Commission's
-            <a
-              href="https://atlantaregional.org/what-we-do/research-and-data/"
-              target="_blank"
-              >Research and Innovation</a
-            >
-            Team. Source data comes from Share Fulton Tyler API and
-            <a href="https://evictionlab.org/" target="_blank"
-              >The Eviction Lab.
-            </a>
-          </div>
-        </div>
+          at Princeton University. We are grateful to Fulton County for
+          providing direct access to their records. For questions about this
+          tool, please email
+          <a
+            href="mailto:wwright@atlantaregional.org?subject=Eviction%20tracker%20inquiry"
+            >Will Wright</a
+          >, lead developer on the project.
+        </p>
+
+        <h3 class="about-heading">About the Data</h3>
+        <p class="about-body">
+          These data capture formal eviction filings, which do not necessary
+          result in a dispossession. However, eviction filings serve as a useful
+          proxy for housing instability, both in capturing a legal moment of
+          housing precarity and given that eviction filings go on a tenant's
+          record and can make finding future housing difficult. In addition, the
+          data do not reflect informal evictions or forced moves. Research has
+          found that forced moves due to illegal evictions and informal
+          evictions are far larger than the number of tenants displaced through
+          the legal, formal eviction process. The foundation of this tool was
+          built by dedicated developers and subject matter experts. Their
+          decisions, creative solutions, and attention to detail continue to
+          influence this version. The core concepts and user-centered approach
+          remain rooted in the original vision.
+        </p>
+
+        <h3 class="about-heading">Original Development Team</h3>
+        <p class="about-body">
+          Elora Raymond, Georgia Institute of Technology; Erik Woodworth,
+          Assemblage Consulting; Sarah Stein, Federal Reserve Bank of Atlanta;
+          Victor Pearse Haley, Federal Reserve Bank of Atlanta; Gordon (Ge)
+          Zhang, Georgia Institute of Technology; Rama Sivakumar, Georgia
+          Institute of Technology; Subhro Guhathakurta, Georgia Institute of
+          Technology; John Herman, Neighborhood Nexus
+        </p>
       </div>
       <wa-button slot="footer" variant="brand" data-dialog="close"
         >Close</wa-button
