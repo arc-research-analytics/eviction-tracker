@@ -430,16 +430,14 @@ header a {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* Tooltip background color and font for About and Download button tooltips */
-wa-tooltip[for="aboutBtn"]::part(body),
-wa-tooltip[for="downloadFilteredData"]::part(body) {
+/* Tooltip background color and font — applies to all wa-tooltip instances */
+wa-tooltip::part(body) {
     background-color: #58585A;
     font-family: 'DINPro', Arial, sans-serif;
     font-weight: 400;
 }
 
-wa-tooltip[for="aboutBtn"]::part(base__arrow),
-wa-tooltip[for="downloadFilteredData"]::part(base__arrow) {
+wa-tooltip::part(base__arrow) {
     background-color: #58585A;
 }
 
