@@ -397,17 +397,27 @@ class CountyTrends {
                 usePointStyle: true,
                 padding: 15,
                 font: {
-                  size: 12,
-                  weight: '400',
+                  size: 14,
+                  weight: '500',
                   family: 'DINPro, sans-serif'
                 }
               }
             },
             tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              backgroundColor: '#58585A',
               titleColor: 'white',
               bodyColor: 'white',
               cornerRadius: 6,
+              titleFont: {
+                family: 'DINPro, sans-serif',
+                weight: '500',
+                size: 13
+              },
+              bodyFont: {
+                family: 'DINPro, sans-serif',
+                weight: '400',
+                size: 12
+              },
               callbacks: {
                 label: function(context) {
                   const countyName = context.dataset.label;
