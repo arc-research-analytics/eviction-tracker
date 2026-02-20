@@ -142,11 +142,11 @@ class CountyTrends {
 
         // Color palette for 5 counties
         const colors = [
-          '#e31a1c',  // Red - Fulton
-          '#1f78b4',  // Blue - DeKalb
-          '#33a02c',  // Green - Gwinnett
-          '#ff7f00',  // Orange - Cobb
-          '#6a3d9a'   // Purple - Clayton
+          '#ee575d',  // Clayton
+          '#636ea0',  // Cobb
+          '#1270B3',  // DeKalb
+          '#1aafa6',  // Fulton
+          '#678539'   // Gwinnett
         ];
 
         return {
@@ -154,7 +154,7 @@ class CountyTrends {
           data: monthlyValues,
           borderColor: colors[index % colors.length],
           backgroundColor: 'transparent',
-          borderWidth: 2,
+          borderWidth: 3,
           tension: 0.3,
           pointRadius: 0,
           pointHoverRadius: 4,
@@ -253,7 +253,7 @@ class CountyTrends {
               // Draw label at top of shaded region (two lines)
               ctx.save();
               ctx.fillStyle = 'rgba(80, 80, 80, 0.8)';
-              ctx.font = 'bold 11px sans-serif';
+              ctx.font = '500 11px "DINPro", sans-serif';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'top';
               const labelX = (xStart + xEnd) / 2;
@@ -336,7 +336,8 @@ class CountyTrends {
                 text: '',
                 font: {
                   size: 14,
-                  weight: 'bold'
+                  weight: '500',
+                  family: 'DINPro, sans-serif'
                 }
               },
               grid: {
@@ -344,6 +345,11 @@ class CountyTrends {
               },
               ticks: {
                 maxTicksLimit: 20, // Increased from 12 to show more labels
+                font: {
+                  size: 12,
+                  weight: '400',
+                  family: 'DINPro, sans-serif'
+                },
                 callback: function(value, index, ticks) {
                   const label = this.getLabelForValue(value);
                   // Show every 6th label (every 6 months) plus first/last
@@ -360,7 +366,8 @@ class CountyTrends {
                 text: 'Eviction Filings',
                 font: {
                   size: 14,
-                  weight: 'bold'
+                  weight: '500',
+                  family: 'DINPro, sans-serif'
                 }
               },
               grid: {
@@ -368,6 +375,11 @@ class CountyTrends {
               },
               beginAtZero: true,
               ticks: {
+                font: {
+                  size: 12,
+                  weight: '400',
+                  family: 'DINPro, sans-serif'
+                },
                 callback: function(value) {
                   return value.toLocaleString();
                 }
@@ -385,7 +397,9 @@ class CountyTrends {
                 usePointStyle: true,
                 padding: 15,
                 font: {
-                  size: 12
+                  size: 12,
+                  weight: '400',
+                  family: 'DINPro, sans-serif'
                 }
               }
             },

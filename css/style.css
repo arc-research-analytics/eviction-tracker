@@ -1,3 +1,77 @@
+/* Self-hosted fonts */
+@font-face {
+    font-family: 'NeutraText';
+    src: url('../assets/fonts/NeutraText-Bold.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'MinionPro';
+    src: url('../assets/fonts/MinionPro-Regular.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'MinionPro';
+    src: url('../assets/fonts/MinionPro-Semibold.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DINPro';
+    src: url('../assets/fonts/DINPro.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DINPro';
+    src: url('../assets/fonts/DINPro-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DINPro';
+    src: url('../assets/fonts/DINPro-Italic.otf') format('opentype');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DINProCondBoldItalic';
+    src: url('../assets/fonts/DINPro-CondBoldItalic.otf') format('opentype');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
+/* Override Web Awesome brand color scale to match agency blue #1270B3 */
+:root {
+    /* UI panel background — controls opacity of all floating widgets (buttons, legend, slider, KPI box).
+       Set to rgba(255,255,255,1) for fully opaque or rgba(255,255,255,0.9) for 90% opacity, etc. */
+    --ui-panel-bg: rgba(255, 255, 255, 1);
+    --wa-color-brand-95: #ddeef9;
+    --wa-color-brand-90: #b8d9f2;
+    --wa-color-brand-80: #7ab8e4;
+    --wa-color-brand-70: #4897d0;
+    --wa-color-brand-60: #1a85d0;
+    --wa-color-brand-50: #1270B3;
+    --wa-color-brand-40: #0d5a8e;
+    --wa-color-brand-30: #094070;
+    --wa-color-brand-20: #062a4a;
+    --wa-color-brand-10: #031525;
+}
+
 html,
 body {
     height: 100%;
@@ -16,20 +90,21 @@ wa-drawer:not(:defined) {
 }
 
 header {
-    background-color: #252525;
+    background-color: #58585A;
     color: #fff;
     text-align: left;
     padding: 5px;
     padding-left: 20px;
     padding-right: 20px;
+    font-family: 'NeutraText', Arial, sans-serif;
     font-size: 29px;
-    font-weight: bold;
+    font-weight: 600;
     position: fixed;
     width: 100%;
     top: 0;
     left: 0;
     z-index: 2;
-    opacity: .95;
+    opacity: 1;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -42,7 +117,7 @@ header a {
 }
 
 #headerLogo {
-    height: 40px;
+    height: 30px;
     width: auto;
 }
 
@@ -93,7 +168,7 @@ header a {
     position: absolute;
     bottom: 20px;
     right: 20px;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--ui-panel-bg);
     border-radius: 5px;
     padding: 15px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -106,6 +181,9 @@ header a {
 .legend h4 {
     margin: 0 0 10px 0;
     font-size: 14px;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
 }
 
 .legend-item {
@@ -113,6 +191,9 @@ header a {
     align-items: center;
     margin-bottom: 5px;
     font-size: 12px;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 400;
+    color: #58585A;
 }
 
 .legend-color {
@@ -125,11 +206,13 @@ header a {
 .legend-explanation {
     margin-top: 10px;
     font-size: 11px;
-    color: #666;
+    color: #58585A;
     line-height: 1.3;
     text-align: left;
     padding: 10px 0 0 0;
     border-top: 1px solid #e0e0e0;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 400;
 }
 
 /* Gradient legend styles */
@@ -180,14 +263,13 @@ header a {
 /* Tooltip styles */
 .tooltip {
     position: absolute;
-    background: rgba(0, 0, 0, 0.7);
+    background: #58585A;
     color: white;
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 14px;
     pointer-events: none;
     z-index: 1000;
-    font-weight: bold;
     width: auto;
 }
 
@@ -195,7 +277,8 @@ header a {
     display: block;
     font-size: 16px;
     margin-bottom: 4px;
-    font-weight: bold;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
     color: #ffeb3b;
 }
 
@@ -203,13 +286,17 @@ header a {
     display: block;
     font-size: 15px;
     margin-bottom: 2px;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
 }
 
 .tooltip-hint {
     display: block;
     font-size: 14px;
     opacity: 0.8;
-    font-weight: normal;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 400;
+    font-style: italic;
 }
 
 /* Month display in top-right corner */
@@ -217,7 +304,7 @@ header a {
     position: absolute;
     top: 70px;
     right: 20px;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--ui-panel-bg);
     border-radius: 5px;
     padding: 15px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -229,15 +316,17 @@ header a {
 
 #monthText {
     font-size: 18px;
-    font-weight: bold;
-    color: #333;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
     margin-bottom: 5px;
 }
 
 #totalText {
     font-size: 18px;
-    font-weight: bold;
-    color: #333;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
 }
 
 /* Wrapper for all drawer option groups - centers all children */
@@ -248,9 +337,10 @@ header a {
 }
 
 .drawer-section-label {
-    font-weight: 400;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
     font-size: 16px;
-    color: #333;
+    color: #58585A;
     margin: 0 0 8px 0;
     text-align: center;
 }
@@ -266,7 +356,7 @@ header a {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--ui-panel-bg);
     border-radius: 5px;
     padding: 10px 15px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -279,8 +369,16 @@ header a {
 #sliderLabel {
     margin-top: 8px;
     font-size: 14px;
-    font-weight: bold;
-    color: #333;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
+}
+
+/* Slider "Click and drag to change the month:" label (inside shadow DOM) */
+#monthSlider::part(label) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
 }
 
 /* Drawer footer buttons - spread them apart */
@@ -293,31 +391,48 @@ header a {
 
 /* About button inside Options drawer footer */
 #aboutBtn::part(base) {
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: var(--ui-panel-bg);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     border: none;
     border-radius: 5px;
-    color: #252525;
+    color: #58585A;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #aboutBtn::part(base):hover {
-    background-color: #252525;
+    background-color: #58585A;
     color: rgba(255, 255, 255, 0.9);
 }
 
 /* Download filtered data button - matches About button style */
 #downloadFilteredData::part(base) {
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: var(--ui-panel-bg);
     border: 1px solid #ccc;
     border-radius: 5px;
-    color: #252525;
+    color: #58585A;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #downloadFilteredData::part(base):hover {
-    background-color: #252525;
+    background-color: #58585A;
     color: rgba(255, 255, 255, 0.9);
+}
+
+/* Tooltip background color and font for About and Download button tooltips */
+wa-tooltip[for="aboutBtn"]::part(body),
+wa-tooltip[for="downloadFilteredData"]::part(body) {
+    background-color: #58585A;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 400;
+}
+
+wa-tooltip[for="aboutBtn"]::part(base__arrow),
+wa-tooltip[for="downloadFilteredData"]::part(base__arrow) {
+    background-color: #58585A;
 }
 
 /* adjust font style of county trends button */
@@ -329,17 +444,18 @@ header a {
 }
 
 #countyTrendsBtn::part(base) {
-    color: #252525;
-    background-color: rgba(255, 255, 255, 0.9);
+    color: #58585A;
+    background-color: var(--ui-panel-bg);
     border: none;
     border-radius: 5px;
-    font-weight: 900;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
     font-size: 16px;
 }
 
 #countyTrendsBtn::part(base):hover {
-    background-color: #252525;
-    color: rgba(255, 255, 255, 0.9);
+    background-color: #1270B3;
+    color: #ffffff;
 }
 
 /* Options button in lower-left */
@@ -351,18 +467,19 @@ header a {
 }
 
 #optionsBtn::part(base) {
-    color: #252525;
-    background-color: rgba(255, 255, 255, 0.9);
+    color: #58585A;
+    background-color: var(--ui-panel-bg);
     border: none;
     border-radius: 5px;
-    font-weight: 900;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
     font-size: 16px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 #optionsBtn::part(base):hover {
-    background-color: #252525;
-    color: rgba(255, 255, 255, 0.9);
+    background-color: #1270B3;
+    color: #ffffff;
 }
 
 a.mapboxgl-ctrl-logo {
@@ -384,6 +501,20 @@ a.mapboxgl-ctrl-logo {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
+/* Mobile welcome dialog */
+#mobileWelcomeDialog::part(title) {
+    font-family: 'MinionPro', Georgia, serif;
+    font-weight: 600;
+    color: #58585A;
+}
+
+.mobile-welcome-body {
+    line-height: 1.6;
+    font-family: 'MinionPro', Georgia, serif;
+    font-weight: 400;
+    color: #58585A;
+}
+
 /* About dialog content layout */
 .about-dialog {
     display: flex;
@@ -392,14 +523,18 @@ a.mapboxgl-ctrl-logo {
 }
 
 .about-heading {
-    font-size: 16px;
+    font-size: 18px;
+    font-family: 'MinionPro', Georgia, serif;
     font-weight: 600;
+    color: #58585A;
     margin: 16px 0 6px 0;
 }
 
 .about-body {
-    color: hsl(0, 0%, 33%);
-    font-size: 14px;
+    color: #58585A;
+    font-size: 17px;
+    font-family: 'MinionPro', Georgia, serif;
+    font-weight: 400;
     line-height: 1.4;
     margin: 0;
 }
@@ -408,7 +543,7 @@ a.mapboxgl-ctrl-logo {
 /* Tract popup styles */
 .tract-popup {
     position: absolute;
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--ui-panel-bg);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(0, 0, 0, 0.1);
@@ -432,8 +567,9 @@ a.mapboxgl-ctrl-logo {
 .tract-name {
     margin: 0;
     font-size: 16px;
-    font-weight: bold;
-    color: #252525;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
 }
 
 .popup-close {
@@ -459,6 +595,9 @@ a.mapboxgl-ctrl-logo {
 
 .popup-content {
     padding: 15px;
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 400;
+    color: #58585A;
 }
 
 /* Chart container for individual census tract popups (when clicking on tracts) */
@@ -492,6 +631,7 @@ a.mapboxgl-ctrl-logo {
     font-size: 12px;
     color: #666;
     text-align: center;
+    font-family: 'DINPro', Arial, sans-serif;
     font-style: italic;
 }
 
@@ -561,6 +701,46 @@ a.mapboxgl-ctrl-logo {
     display: none;
 }
 
+/* County trends drawer title */
+#countyTrendsDrawer::part(title) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
+}
+
+/* County trends drawer Close button (brand variant) */
+#countyTrendsDrawer wa-button[variant="brand"]::part(base) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+}
+
+/* About dialog and mobile welcome dialog Close/Got it buttons (regular weight) */
+#aboutDialog wa-button[variant="brand"]::part(base),
+#mobileWelcomeDialog wa-button[variant="brand"]::part(base) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 400;
+}
+
+/* Radio button text in Map Options drawer (correct part name is "label") */
+wa-radio[appearance="button"]::part(label) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+}
+
+/* Map Options drawer title */
+#optionsDrawer::part(title) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    color: #58585A;
+}
+
+/* About dialog title ("About this app") */
+#aboutDialog::part(title) {
+    font-family: 'MinionPro', Georgia, serif;
+    font-weight: 600;
+    color: #58585A;
+}
+
 /* Options drawer content */
 .options-content {
     padding: 20px;
@@ -618,12 +798,17 @@ a.mapboxgl-ctrl-logo {
 
     /* Reduce header font size on mobile */
     header {
-        font-size: 18px;
+        font-size: 21px;
     }
 
     /* Make ARC logo smaller on mobile */
     #headerLogo {
-        height: 22px;
+        height: 16px;
+    }
+
+    /* Hide map watermark logo on mobile to reduce clutter */
+    #arcLogo {
+        display: none;
     }
 
     /* Reduce header right padding on mobile */
@@ -674,7 +859,7 @@ a.mapboxgl-ctrl-logo {
     }
 
     /* Hide the label text on the slider itself when vertical */
-    #monthSlider::part(form-control-label) {
+    #monthSlider::part(label) {
         display: none;
     }
 
@@ -720,7 +905,7 @@ a.mapboxgl-ctrl-logo {
         width: 140px;
         height: auto;
         padding: 15px;
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--ui-panel-bg);
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
