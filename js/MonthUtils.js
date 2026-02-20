@@ -57,17 +57,25 @@ class MonthUtils {
                     return parseMonth(a) - parseMonth(b);
                 });
 
-            // Filter out months beyond config MAX_DATE if specified
+            // Filter months to config START_DATE / MAX_DATE window
+            const configStartDate = (typeof CONFIG !== 'undefined' && CONFIG.dateRange)
+                ? CONFIG.dateRange.START_DATE
+                : null;
             const configMaxDate = (typeof CONFIG !== 'undefined' && CONFIG.dateRange)
                 ? CONFIG.dateRange.MAX_DATE
                 : null;
 
+            if (configStartDate) {
+                const startDateNum = this.parseMonthForComparison(configStartDate);
+                internalMonths = internalMonths.filter(month => {
+                    return this.parseMonthForComparison(month) >= startDateNum;
+                });
+            }
+
             if (configMaxDate) {
                 const maxDateNum = this.parseMonthForComparison(configMaxDate);
-
                 internalMonths = internalMonths.filter(month => {
-                    const monthNum = this.parseMonthForComparison(month);
-                    return monthNum <= maxDateNum;
+                    return this.parseMonthForComparison(month) <= maxDateNum;
                 });
             }
 

@@ -309,8 +309,8 @@ class PopupManager {
                 labels: data.labels,
                 datasets: [{
                     data: data.values,
-                    borderColor: '#e31a1c',
-                    backgroundColor: 'rgba(227, 26, 28, 0.1)',
+                    borderColor: '#ee575D',
+                    backgroundColor: 'rgba(238, 87, 93, 0.1)',
                     borderWidth: 2,
                     fill: true,
                     tension: 0.3,
@@ -365,7 +365,13 @@ class PopupManager {
                     y: {
                         title: {
                             display: true,
-                            text: this.getYAxisTitle()
+                            text: this.getYAxisTitle(),
+                            font: {
+                                size: 10,
+                                weight: '400',
+                                family: 'DINPro, sans-serif'
+                            },
+                            color: '#58585A'
                         },
                         display: true,
                         beginAtZero: true,
@@ -374,9 +380,11 @@ class PopupManager {
                         },
                         ticks: {
                             font: {
-                                size: 10 // Small but legible font size
+                                size: 10,
+                                weight: '400',
+                                family: 'DINPro, sans-serif'
                             },
-                            color: '#666666',
+                            color: '#58585A',
                             maxTicksLimit: 4, // Limit to max 4 ticks to prevent crowding
                             padding: 5
                         }

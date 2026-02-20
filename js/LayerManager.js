@@ -390,12 +390,12 @@ class LayerManager {
                 maxzoom: 12,
                 layout: {
                     'text-field': ['get', 'NAME'],
-                    'text-font': ['DIN Pro Bold Italic', 'Arial Unicode MS Bold'],
+                    'text-font': ['DIN Pro Bold Italic', 'Arial Unicode MS Regular'],
                     'text-size': 16,
                     'text-transform': 'uppercase'
                 },
                 paint: {
-                    'text-color': '#000000',
+                    'text-color': '#58585A',
                     'text-halo-color': '#ffffff',
                     'text-halo-width': 2
                 }

@@ -23,9 +23,9 @@ class MapManager {
 
         // Detect mobile device and adjust zoom accordingly
         const isMobile = window.innerWidth <= 768;
-        const initialZoom = isMobile ? 7.8 : 8.8;
-        const initialLatitude = isMobile ? 33.69 : 33.73;
-        const initialLongitude = isMobile ? -84.35 : -84.35;
+        const initialZoom = isMobile ? 8.1 : 8.8;
+        const initialLatitude = isMobile ? 33.76 : 33.73;
+        const initialLongitude = isMobile ? -84.32 : -84.35;
 
         this.map = new mapboxgl.Map({
             container: 'map',
