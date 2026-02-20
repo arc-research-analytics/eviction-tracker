@@ -33,6 +33,14 @@
 
 @font-face {
     font-family: 'DINPro';
+    src: url('../assets/fonts/DINPro-Bold.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DINPro';
     src: url('../assets/fonts/DINPro-Medium.otf') format('opentype');
     font-weight: 500;
     font-style: normal;
@@ -96,9 +104,9 @@ header {
     padding: 5px;
     padding-left: 20px;
     padding-right: 20px;
-    font-family: 'NeutraText', Arial, sans-serif;
+    font-family: 'DINPro', Arial, sans-serif;
     font-size: 29px;
-    font-weight: 600;
+    font-weight: 700;
     position: fixed;
     width: 100%;
     top: 0;
