@@ -334,12 +334,21 @@ class PopupManager {
                         display: false
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(88, 88, 90, 0.85)',
                         titleColor: '#ffffff',
                         bodyColor: '#ffffff',
-                        borderColor: '#e31a1c',
-                        borderWidth: 1,
+                        borderWidth: 0,
                         displayColors: false,
+                        titleFont: {
+                            family: 'DINPro, sans-serif',
+                            weight: '500',
+                            size: 13
+                        },
+                        bodyFont: {
+                            family: 'DINPro, sans-serif',
+                            weight: '400',
+                            size: 12
+                        },
                         callbacks: {
                             title: function(context) {
                                 return context[0].label;
@@ -349,10 +358,9 @@ class PopupManager {
                                 const displayMode = popupManager.dataLoader.getDisplayMode();
 
                                 if (displayMode === 'rate') {
-                                    // Format as percentage (multiplied by 100 when loaded)
                                     return `${value.toFixed(2)}% filing rate`;
                                 } else {
-                                    return `${value} eviction${value !== 1 ? 's' : ''}`;
+                                    return `${value} filing${value !== 1 ? 's' : ''}`;
                                 }
                             }
                         }
