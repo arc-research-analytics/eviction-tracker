@@ -597,7 +597,8 @@ class PopupManager {
         const labels = {
             tract: 'Census Tract',
             school: 'School Zone',
-            hex: 'Hexagon'
+            hex: 'Hexagon',
+            city: 'City'
         };
         return labels[geographyType] || 'Location';
     }
@@ -623,6 +624,10 @@ class PopupManager {
         } else if (geographyType === 'school') {
             if (properties.ShortLabel) {
                 return `${properties.ShortLabel} High School Area`;
+            }
+        } else if (geographyType === 'city') {
+            if (properties.ShortLabel) {
+                return properties.ShortLabel;
             }
         } else if (geographyType === 'hex') {
             return 'This Hexagon';
