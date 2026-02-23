@@ -95,10 +95,12 @@ class MapTooltipHandler {
             const geographyType = this.dataLoader.getGeographyType();
             const displayValue = properties.displayvalue || 0;
 
-            // Build school name prefix if geography is schools
+            // Build name prefix for geographies that display a label
             let schoolNamePrefix = '';
             if (geographyType === 'school' && properties.ShortLabel) {
                 schoolNamePrefix = `<span class="tooltip-school-name">${properties.ShortLabel} High School</span>`;
+            } else if (geographyType === 'city' && properties.ShortLabel) {
+                schoolNamePrefix = `<span class="tooltip-school-name">${properties.ShortLabel}</span>`;
             }
 
             if (displayMode === 'rate') {

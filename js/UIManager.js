@@ -129,7 +129,8 @@ class UIManager {
         const geographyNames = {
             tract: 'Census Tract',
             school: 'High School Statistical Area',
-            hex: 'H3 Hexagon'
+            hex: 'H3 Hexagon',
+            city: 'City'
         };
         const geographyName = geographyNames[geographyType] || 'Census Tract';
 
@@ -477,12 +478,12 @@ class UIManager {
         }
 
         let isHandling = false;
-        this._filingModeLastValue = selector.value;
+        this._filingModeLastValue = selector.checked ? 'rate' : 'count';
 
         const handleChange = async (event) => {
             if (isHandling) return;
 
-            const newValue = event.target.value;
+            const newValue = event.target.checked ? 'rate' : 'count';
             if (newValue === this._filingModeLastValue) return;
 
             isHandling = true;
@@ -511,17 +512,7 @@ class UIManager {
     setFilingModeValue(value) {
         const selector = document.getElementById('filingModeSelector');
         if (selector) {
-            selector.value = value;
-            selector.setAttribute('value', value);
-            // Also update individual radio checked states
-            const radios = selector.querySelectorAll('wa-radio');
-            radios.forEach(radio => {
-                if (radio.value === value) {
-                    radio.checked = true;
-                } else {
-                    radio.checked = false;
-                }
-            });
+            selector.checked = (value === 'rate');
             // Sync the tracked value so the change listener stays in sync
             this._filingModeLastValue = value;
         }
@@ -531,9 +522,9 @@ class UIManager {
      * Enable or disable the filing mode selector
      */
     setFilingModeEnabled(enabled) {
-        const radios = document.querySelectorAll('#filingModeSelector wa-radio');
-        radios.forEach(radio => {
-            radio.disabled = !enabled;
-        });
+        const selector = document.getElementById('filingModeSelector');
+        if (selector) {
+            selector.disabled = !enabled;
+        }
     }
 }

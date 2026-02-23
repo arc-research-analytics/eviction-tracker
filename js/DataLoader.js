@@ -30,6 +30,10 @@ class DataLoader {
             hex: {
                 table: 'evictions-hex',
                 idField: 'hex_id'
+            },
+            city: {
+                table: 'evictions-city',
+                idField: 'city_id'
             }
         };
     }

@@ -27,6 +27,11 @@ class LayerManager {
                 file: 'data/region_hex.geojson',
                 idProperty: 'hex_id',
                 name: 'H3 Hexagon'
+            },
+            city: {
+                file: 'data/region_cities.geojson',
+                idProperty: 'ShortLabel',
+                name: 'City'
             }
         };
 
@@ -56,6 +61,10 @@ class LayerManager {
             hex: {
                 rate: [0, 1.0, 2.5, 10.0, 550],       // Jenks breaks for hex filing rate (%)
                 count: [0, 10, 30, 60, 251]          // Jenks breaks for hex filing count
+            },
+            city: {
+                rate: [0, 1.5, 3.0, 5.0, 10.0],      // Placeholder — recalculate with Jenks after data loads
+                count: [0, 50, 150, 400, 1000]       // Placeholder — recalculate with Jenks after data loads
             }
         };
 

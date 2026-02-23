@@ -86,15 +86,28 @@
 
     <!-- Slider at center bottom -->
     <div id="sliderContainer">
-      <wa-slider
-        id="monthSlider"
-        label="Click and drag to change the month:"
-        min="0"
-        max="112"
-        value="112"
-        step="1"
-      ></wa-slider>
-      <div id="sliderLabel">&nbsp;</div>
+      <div id="filingModeInline">
+        <wa-switch id="filingModeSelector" checked></wa-switch>
+        <span id="filingModeLabel">Show Map<br>as Rate</span>
+        <wa-tooltip
+          for="filingModeSelector"
+          placement="top"
+          style="--max-width: max-content"
+          >Disable to show filing counts</wa-tooltip
+        >
+      </div>
+      <div id="sliderDivider"></div>
+      <div id="sliderMain">
+        <wa-slider
+          id="monthSlider"
+          label="Click and drag to change the month:"
+          min="0"
+          max="112"
+          value="112"
+          step="1"
+        ></wa-slider>
+        <div id="sliderLabel">&nbsp;</div>
+      </div>
     </div>
 
     <!-- About dialog (opened by About button inside Options drawer) -->
@@ -213,43 +226,6 @@
     >
       <div class="options-content">
         <div id="drawerOptionsWrapper">
-          <p class="drawer-section-label">Change Filing Mode:</p>
-          <wa-radio-group
-            id="filingModeSelector"
-            orientation="horizontal"
-            name="filingMode"
-            value="rate"
-          >
-            <wa-radio id="filingModeRate" appearance="button" value="rate"
-              >Rate</wa-radio
-            >
-            <wa-radio id="filingModeCount" appearance="button" value="count"
-              >Count</wa-radio
-            >
-          </wa-radio-group>
-          <wa-tooltip
-            for="filingModeRate"
-            placement="bottom"
-            style="--max-width: 100%"
-            >Show map geography as filing rate</wa-tooltip
-          >
-          <wa-tooltip
-            for="filingModeCount"
-            placement="bottom"
-            style="--max-width: 100%"
-            >Show map geography as filing count</wa-tooltip
-          >
-
-          <hr
-            class="drawer-divider"
-            style="
-              margin: 30px auto 30px auto;
-              border: 0;
-              border-top: 1px solid #ccc;
-              width: 100%;
-            "
-          />
-
           <p class="drawer-section-label">Change Geography Level:</p>
           <wa-radio-group
             id="geographySelector"
@@ -258,19 +234,37 @@
             value="tract"
             style="max-width: 300px"
           >
-            <wa-tooltip for="geoTract" placement="right"
-              >2020 Census tract vintage</wa-tooltip
+            <wa-tooltip
+              for="geoTract"
+              placement="right"
+              style="--max-width: max-content"
+              >Vintage 2020 Census tract boundaries</wa-tooltip
             >
             <wa-radio id="geoTract" appearance="button" value="tract"
               >Census Tract</wa-radio
             >
-            <wa-tooltip for="geoSchool" placement="right"
+            <wa-tooltip
+              for="geoCity"
+              placement="right"
+              style="--max-width: max-content"
+              >Filings for unincorporated areas not shown</wa-tooltip
+            >
+            <wa-radio id="geoCity" appearance="button" value="city"
+              >City</wa-radio
+            >
+            <wa-tooltip
+              for="geoSchool"
+              placement="right"
+              style="--max-width: max-content"
               >Estimation of attendance zones</wa-tooltip
             >
             <wa-radio id="geoSchool" appearance="button" value="school"
               >High School Statistical Area</wa-radio
             >
-            <wa-tooltip for="geoHex" placement="right"
+            <wa-tooltip
+              for="geoHex"
+              placement="right"
+              style="--max-width: max-content"
               >H3 resolution 7 hexagons</wa-tooltip
             >
             <wa-radio id="geoHex" appearance="button" value="hex"
@@ -340,9 +334,6 @@
         </div>
       </div>
       <div slot="footer" class="drawer-footer-buttons">
-        <wa-tooltip for="aboutBtn" placement="top"
-          >More info about this app</wa-tooltip
-        >
         <wa-button id="aboutBtn" variant="neutral">
           <wa-icon name="info-circle"></wa-icon> About
         </wa-button>

@@ -293,7 +293,7 @@ class EvictionApp {
             const currentMode = this.dataLoader.getDisplayMode();
             return {
                 element: selector,
-                selectedValue: selector?.value,
+                checked: selector?.checked,
                 displayMode: currentMode
             };
         };

@@ -147,7 +147,7 @@ The fixed header spans the full width at the top of the viewport.
 | Background color | `#58585A` |
 | Text color | `#ffffff` |
 | Opacity | `1.0` (fully opaque) |
-| Height | Auto — determined by content; approximately **40px** (30px logo + 5px top/bottom padding) |
+| Height | **50px** (fixed, set explicitly in CSS via `height: 50px; box-sizing: border-box`) |
 | Padding | `5px` top/bottom · `20px` left/right |
 | Font | DINPro Bold, `29px` (desktop) · `21px` (mobile) |
 | Position | `fixed`, `z-index: 2`, spans full viewport width |
@@ -212,9 +212,9 @@ All panels share:
 
 ---
 
-## Icons — Web Awesome (`<wa-icon>`)
+## UI Component Library — Web Awesome
 
-The app uses the [Web Awesome](https://www.webawesome.com/) web component library (built by the Font Awesome team) for all iconography. Icons are loaded from their CDN and rendered as inline SVGs via the `<wa-icon>` custom element.
+The app uses [Web Awesome](https://www.webawesome.com/) (built by the Font Awesome team) as its primary UI component library. All interactive widgets — buttons, drawers, dialogs, sliders, tooltips, radio groups, spinners, and icons — are Web Awesome custom elements (`<wa-*>`). Do not introduce a second component library; use Web Awesome components for any new UI elements.
 
 ### CDN Setup
 
@@ -222,6 +222,42 @@ The app uses the [Web Awesome](https://www.webawesome.com/) web component librar
 <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.5/dist/styles/webawesome.css" />
 <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.5/dist/webawesome.loader.js"></script>
 ```
+
+Both tags are required. The stylesheet provides base component styles and the CSS custom property tokens (including `--wa-color-brand-*` used for theming). The loader script registers all `<wa-*>` custom elements.
+
+### Loading Spinner (`<wa-spinner>`)
+
+The app uses `<wa-spinner>` for all loading states. It inherits `currentColor` for its color and scales with `font-size`.
+
+```html
+<!-- Full-screen overlay spinner (app load) -->
+<wa-spinner style="font-size: 4rem"></wa-spinner>
+
+<!-- Inline spinner (chart loading states) -->
+<wa-spinner style="font-size: 4rem"></wa-spinner>
+```
+
+| Usage | Location | Size |
+|-------|----------|------|
+| App load overlay | `#loadingOverlay` inside `.loading-content` | `font-size: 4rem` |
+| Popup chart loading | `#chartLoadingIndicator` inside `.chart-loading` | `font-size: 4rem` |
+
+The spinner color is inherited from the parent element's text color. In the full-screen overlay (dark background), the parent `.loading-content` has `color: white`, so the spinner renders white. No explicit color override is needed.
+
+To prevent a flash of unstyled Web Awesome components before the loader script registers them, this CSS rule hides dialog and drawer elements until they are defined:
+
+```css
+wa-dialog:not(:defined),
+wa-drawer:not(:defined) {
+    display: none;
+}
+```
+
+---
+
+## Icons — Web Awesome (`<wa-icon>`)
+
+Icons are a subset of the Web Awesome library. They are loaded from the same CDN as the rest of the library (see CDN Setup above) and rendered as inline SVGs via the `<wa-icon>` custom element.
 
 ### Usage Syntax
 
