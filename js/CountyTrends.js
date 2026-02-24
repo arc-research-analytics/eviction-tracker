@@ -552,7 +552,7 @@ class CountyTrends {
       const colors = ['#ee575d', '#636ea0', '#1270B3', '#1aafa6', '#678539'];
       const allMonths = this.cityData.allMonths;
 
-      const datasets = this.selectedCities.map((cityName, i) => {
+      const datasets = [...this.selectedCities].sort((a, b) => a.localeCompare(b)).map((cityName, i) => {
         const cityMonths = this.cityData.byCityAndMonth[cityName] || {};
         const monthlyValues = allMonths.map(m => cityMonths[m] || 0);
         const color = colors[i % colors.length];
