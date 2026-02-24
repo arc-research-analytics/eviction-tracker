@@ -58,9 +58,9 @@
       </a>
     </header>
 
-    <!-- County Trends button in top-left -->
+    <!-- Trends button in top-left -->
     <wa-button id="countyTrendsBtn" variant="neutral">
-      County Trends
+      Trends
       <wa-icon name="arrow-down"></wa-icon>
     </wa-button>
 
@@ -185,18 +185,21 @@
       >
     </wa-dialog>
 
-    <!-- County Trends drawer (slides in from top) -->
+    <!-- Trends drawer (slides in from top) -->
     <wa-drawer
-      label="Monthly County Eviction Filings"
+      label="Monthly Eviction Filings"
       placement="top"
       id="countyTrendsDrawer"
       class="county-trends-drawer"
       style="--size: 85vh"
     >
+      <div class="trends-tab-bar">
+        <button class="trends-tab active" data-tab="county">By County</button>
+        <button class="trends-tab" data-tab="region">By Region Total</button>
+      </div>
       <div class="county-trends-content">
         <div class="county-chart-container">
           <canvas id="countyTrendsChart"></canvas>
-          <!-- insert text below the chart explaining the grey vertical line -->
           <div class="chart-explanation">
             <p style="font-size: 16px">
               <i
