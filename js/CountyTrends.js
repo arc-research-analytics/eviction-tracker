@@ -13,7 +13,9 @@ class CountyTrends {
     this.supabase = supabase;
     this.monthlyData = [];
     this.regionalData = null;
-    this.activeTab = 'county'; // 'county' or 'region'
+    this.cityData = null;
+    this.selectedCities = [];
+    this.activeTab = 'county'; // 'county', 'city', or 'region'
     this.rangeStartIndex = null;
     this.rangeEndIndex = null;
 
@@ -66,8 +68,13 @@ class CountyTrends {
     if (this.drawer && this.isInitialized) {
       this.drawer.open = true;
       
-      // Load chart data if not already loaded (cached after first load)
-      if (!this.monthlyData.labels) {
+      if (this.activeTab === 'city') {
+        if (!this.cityData) {
+          await this.loadCityData();
+        } else {
+          this.renderCityVisualization();
+        }
+      } else if (!this.monthlyData.labels) {
         await this.loadTrendsData();
       } else if (this.activeTab === 'region') {
         this.buildRegionalData();
@@ -106,21 +113,30 @@ class CountyTrends {
    */
   setupTabs() {
     const tabs = this.drawer.querySelectorAll('.trends-tab');
+    const content = this.drawer.querySelector('.county-trends-content');
+
     tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        // Update active state
+      tab.addEventListener('click', async () => {
         tabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
 
         this.activeTab = tab.dataset.tab;
 
-        // Update drawer label
-        this.drawer.label = this.activeTab === 'region'
-          ? 'Monthly Regional Eviction Filings'
-          : 'Monthly County Eviction Filings';
+        // Toggle city-mode CSS class for layout adjustment
+        content.classList.toggle('city-mode', this.activeTab === 'city');
 
-        // Re-render if data is loaded
-        if (this.monthlyData.labels) {
+        // Update drawer label
+        const labels = { county: 'Monthly County Eviction Filings', city: 'Monthly City Eviction Filings', region: 'Monthly Regional Eviction Filings' };
+        this.drawer.label = labels[this.activeTab];
+
+        // Render appropriate view
+        if (this.activeTab === 'city') {
+          if (!this.cityData) {
+            await this.loadCityData();
+          } else {
+            this.renderCityVisualization();
+          }
+        } else if (this.monthlyData.labels) {
           if (this.activeTab === 'region') {
             this.buildRegionalData();
             this.renderRegionalVisualization();
@@ -355,6 +371,359 @@ class CountyTrends {
       }
     } catch (error) {
       this.showError('Failed to render regional chart');
+    }
+  }
+
+  /**
+   * Load city trends data from the evictions-city table
+   */
+  async loadCityData() {
+    if (!this.dataLoader || !this.supabase) return;
+
+    try {
+      this.showLoading();
+
+      const monthUtils = this.dataLoader.getMonthUtils();
+      const allMonths = monthUtils.getAllMonths();
+      const availableMonths = monthUtils.getAllMonthsSupabaseFormat();
+
+      // Paginate to avoid Supabase's 1,000-row default limit.
+      // With ~56 cities × ~82 months ≈ 4,600 rows, pagination is required.
+      const pageSize = 1000;
+      let allData = [];
+      let from = 0;
+      while (true) {
+        const { data: page, error } = await this.supabase
+          .from('evictions-city')
+          .select('filemonth, city_id, totalfilings')
+          .in('filemonth', availableMonths)
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (page) allData = allData.concat(page);
+        if (!page || page.length < pageSize) break;
+        from += pageSize;
+      }
+
+      // Group data by city and month
+      const byCityAndMonth = {};
+      if (allData) {
+        allData.forEach(record => {
+          const cityName = record.city_id;
+          const month = monthUtils.convertFromSupabaseFormat(record.filemonth);
+          if (!byCityAndMonth[cityName]) byCityAndMonth[cityName] = {};
+          byCityAndMonth[cityName][month] = record.totalfilings || 0;
+        });
+      }
+
+      // Sort cities by total filings descending (top cities first in the select).
+      // Exclude unincorporated areas — they don't appear on the map.
+      const cityTotals = Object.entries(byCityAndMonth)
+        .filter(([name]) => !name.toLowerCase().includes('unincorporated'))
+        .map(([name, months]) => ({
+          name,
+          total: Object.values(months).reduce((s, v) => s + v, 0)
+        }));
+      cityTotals.sort((a, b) => b.total - a.total);
+
+      // Alphabetical list for display in the select widget
+      const cityNames = cityTotals.map(c => c.name).sort((a, b) => a.localeCompare(b));
+      // Filings-sorted list kept only for fallback default selection
+      const cityNamesByFilings = cityTotals.map(c => c.name);
+      const labels = allMonths.map(m => monthUtils.dbMonthToHumanReadable(m));
+
+      this.cityData = { cityNames, byCityAndMonth, labels, allMonths };
+
+      // Default: preferred cities (excluding Atlanta which dominates the scale).
+      // Case-insensitive match in case DB casing differs.
+      const preferredDefaults = ['Marietta', 'South Fulton', 'Sandy Springs', 'East Point'];
+      this.selectedCities = preferredDefaults
+        .map(name => cityNames.find(c => c.toLowerCase() === name.toLowerCase()))
+        .filter(Boolean);
+      // Fallback: top 4 non-Atlanta cities by filings if preferred names don't match
+      if (this.selectedCities.length === 0) {
+        this.selectedCities = cityNamesByFilings.filter(c => c !== 'Atlanta').slice(0, 4);
+      }
+
+      this.hideLoading();
+      this.populateCitySelect();
+      this.renderCityVisualization();
+
+    } catch (error) {
+      console.error('CountyTrends: Failed to load city data:', error);
+      this.hideLoading();
+      this.showError('Failed to load city trends data');
+    }
+  }
+
+  /**
+   * Populate the city multi-select with options from loaded city data
+   */
+  populateCitySelect() {
+    const select = document.getElementById('cityMultiSelect');
+    if (!select || !this.cityData) return;
+
+    // Remove existing options
+    select.innerHTML = '';
+
+    // Add a wa-option for each city
+    this.cityData.cityNames.forEach(cityName => {
+      const option = document.createElement('wa-option');
+      option.value = cityName;
+      option.textContent = cityName;
+      select.appendChild(option);
+    });
+
+    // Set initial selection after WA processes the new child elements
+    requestAnimationFrame(() => {
+      select.value = [...this.selectedCities];
+    });
+
+    this.setupCitySelect();
+  }
+
+  /**
+   * Wire up the city multi-select change event
+   */
+  setupCitySelect() {
+    const select = document.getElementById('cityMultiSelect');
+    if (!select || select._cityListenerAttached) return;
+    select._cityListenerAttached = true;
+
+    // Read select.value directly — more reliable than e.target.value which
+    // may not be populated yet when the event fires in WA 3.x.
+    // requestAnimationFrame deduplicates in case both wa-change and change fire.
+    let pending = false;
+    const handleChange = () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        const val = select.value;
+        let newSelected = Array.isArray(val) ? [...val] : (val ? [val] : []);
+
+        // Enforce max 5 cities
+        if (newSelected.length > 5) {
+          newSelected = newSelected.slice(0, 5);
+          select.value = newSelected;
+        }
+
+        this.selectedCities = newSelected;
+
+        if (this.selectedCities.length > 0) {
+          this.renderCityVisualization();
+        } else if (this.chart) {
+          this.chart.destroy();
+          this.chart = null;
+        }
+      });
+    };
+
+    // WA 3.x fires 'wa-change'; also listen to native 'change' as a fallback
+    select.addEventListener('wa-change', handleChange);
+    select.addEventListener('change', handleChange);
+  }
+
+  /**
+   * Render city trends visualization for the selected cities
+   */
+  renderCityVisualization() {
+    if (!this.cityData || !this.chartCanvas) return;
+    if (this.selectedCities.length === 0) {
+      if (this.chart) { this.chart.destroy(); this.chart = null; }
+      return;
+    }
+
+    try {
+      if (this.chart) this.chart.destroy();
+
+      const ctx = this.chartCanvas.getContext('2d');
+      const monthUtils = this.dataLoader.getMonthUtils();
+      const currentMonth = this.dataLoader.getCurrentMonth();
+      this.currentMonthIndex = monthUtils.dbMonthToSliderIndex(currentMonth);
+
+      if (this.dataLoader.isInRangeMode()) {
+        this.rangeStartIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getStartMonth());
+        this.rangeEndIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getEndMonth());
+      } else {
+        this.rangeStartIndex = null;
+        this.rangeEndIndex = null;
+      }
+
+      const colors = ['#ee575d', '#636ea0', '#1270B3', '#1aafa6', '#678539'];
+      const allMonths = this.cityData.allMonths;
+
+      const datasets = this.selectedCities.map((cityName, i) => {
+        const cityMonths = this.cityData.byCityAndMonth[cityName] || {};
+        const monthlyValues = allMonths.map(m => cityMonths[m] || 0);
+        const color = colors[i % colors.length];
+        return {
+          label: cityName,
+          data: monthlyValues,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointBackgroundColor: color,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 1
+        };
+      });
+
+      const countyTrends = this;
+      const labels = this.cityData.labels;
+
+      const verticalLinePlugin = {
+        id: 'verticalLine',
+        afterDraw: (chart) => {
+          const ctx = chart.ctx;
+          const chartArea = chart.chartArea;
+          const xScale = chart.scales.x;
+
+          const moratoriumPeriods = [
+            { name: 'CARES Act', start: '2020-03', end: '2020-07', color: 'rgba(128, 128, 128, 0.15)' },
+            { name: 'CDC', start: '2020-09', end: '2021-10', color: 'rgba(128, 128, 128, 0.15)' }
+          ];
+
+          moratoriumPeriods.forEach(period => {
+            const startIndex = allMonths.findIndex(m => m === period.start);
+            const endIndex = allMonths.findIndex(m => m === period.end);
+            if (startIndex >= 0 && endIndex >= 0) {
+              const xStart = xScale.getPixelForValue(startIndex);
+              const xEnd = xScale.getPixelForValue(endIndex);
+              ctx.save();
+              ctx.fillStyle = period.color;
+              ctx.fillRect(xStart, chartArea.top, xEnd - xStart, chartArea.bottom - chartArea.top);
+              ctx.restore();
+              ctx.save();
+              ctx.fillStyle = 'rgba(80, 80, 80, 0.8)';
+              ctx.font = '500 11px "DINPro", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'top';
+              const labelX = (xStart + xEnd) / 2;
+              ctx.fillText(period.name, labelX, chartArea.top + 5);
+              ctx.fillText('Moratorium', labelX, chartArea.top + 18);
+              ctx.restore();
+            }
+          });
+
+          if (countyTrends.rangeStartIndex !== null && countyTrends.rangeEndIndex !== null) {
+            [countyTrends.rangeStartIndex, countyTrends.rangeEndIndex].forEach(idx => {
+              if (idx >= 0 && idx < labels.length) {
+                const xPos = xScale.getPixelForValue(idx);
+                ctx.save();
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(xPos, chartArea.top);
+                ctx.lineTo(xPos, chartArea.bottom);
+                ctx.stroke();
+                ctx.restore();
+              }
+            });
+          } else if (countyTrends.currentMonthIndex >= 0 && countyTrends.currentMonthIndex < labels.length) {
+            const xPos = xScale.getPixelForValue(countyTrends.currentMonthIndex);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(xPos, chartArea.top);
+            ctx.lineTo(xPos, chartArea.bottom);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          if (chart.tooltip && chart.tooltip.opacity > 0) {
+            const activeElements = chart.tooltip.dataPoints;
+            if (activeElements && activeElements.length > 0) {
+              const xPos = activeElements[0].element.x;
+              ctx.save();
+              ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+              ctx.lineWidth = 1;
+              ctx.setLineDash([]);
+              ctx.beginPath();
+              ctx.moveTo(xPos, chartArea.top);
+              ctx.lineTo(xPos, chartArea.bottom);
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+        }
+      };
+
+      this.chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        plugins: [verticalLinePlugin],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              title: { display: true, text: '', font: { size: 14, weight: '500', family: 'DINPro, sans-serif' } },
+              grid: { display: false },
+              ticks: {
+                maxTicksLimit: 20,
+                font: { size: 12, weight: '400', family: 'DINPro, sans-serif' },
+                callback: function(value, index, ticks) {
+                  const label = this.getLabelForValue(value);
+                  if (index === 0 || index === ticks.length - 1 || index % 4 === 0) return label;
+                  return '';
+                }
+              }
+            },
+            y: {
+              title: { display: true, text: 'Eviction Filings', font: { size: 14, weight: '500', family: 'DINPro, sans-serif' } },
+              grid: { display: false },
+              beginAtZero: true,
+              ticks: {
+                font: { size: 12, weight: '400', family: 'DINPro, sans-serif' },
+                callback: function(value) { return value.toLocaleString(); }
+              }
+            }
+          },
+          plugins: {
+            title: { display: false },
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 8,
+                font: { size: 13, weight: '500', family: 'DINPro, sans-serif' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#58585A',
+              titleColor: 'white',
+              bodyColor: 'white',
+              cornerRadius: 6,
+              titleFont: { family: 'DINPro, sans-serif', weight: '500', size: 13 },
+              bodyFont: { family: 'DINPro, sans-serif', weight: '400', size: 12 },
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} filings`;
+                }
+              }
+            }
+          },
+          interaction: { intersect: false, mode: 'index' },
+          hover: { mode: 'index', intersect: false }
+        }
+      });
+
+      const explanationEl = document.querySelector('#countyTrendsDrawer .chart-explanation p i');
+      if (explanationEl) {
+        const rangeText = this.dataLoader.isInRangeMode()
+          ? 'Vertical dashed lines show the date range selected on the map\'s time slider.'
+          : 'Vertical dashed line represents the period selected on the map\'s time slider.';
+        explanationEl.textContent = rangeText + ' Click a city in the legend above to hide it from the chart.';
+      }
+    } catch (error) {
+      this.showError('Failed to render city chart');
     }
   }
 
@@ -779,18 +1148,16 @@ class CountyTrends {
     // Update help text based on range mode and active tab
     const explanationEl = document.querySelector('#countyTrendsDrawer .chart-explanation p i');
     if (explanationEl) {
+      const isRange = this.dataLoader.isInRangeMode();
+      const lineText = isRange
+        ? 'Vertical dashed lines show the date range selected on the map\'s time slider.'
+        : 'Vertical dashed line represents the period selected on the map\'s time slider.';
       if (this.activeTab === 'region') {
-        if (this.dataLoader.isInRangeMode()) {
-          explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider.';
-        } else {
-          explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider.';
-        }
+        explanationEl.textContent = lineText;
+      } else if (this.activeTab === 'city') {
+        explanationEl.textContent = lineText + ' Click a city in the legend above to hide it from the chart.';
       } else {
-        if (this.dataLoader.isInRangeMode()) {
-          explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
-        } else {
-          explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
-        }
+        explanationEl.textContent = lineText + ' Click a county in the legend above to hide it from the chart.';
       }
     }
 
@@ -804,6 +1171,8 @@ class CountyTrends {
   clearCache() {
     this.monthlyData = [];
     this.regionalData = null;
+    this.cityData = null;
+    this.selectedCities = [];
   }
 }
 
