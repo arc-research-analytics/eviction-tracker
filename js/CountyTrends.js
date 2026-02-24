@@ -12,6 +12,8 @@ class CountyTrends {
     this.dataLoader = dataLoader;
     this.supabase = supabase;
     this.monthlyData = [];
+    this.regionalData = null;
+    this.activeTab = 'county'; // 'county' or 'region'
     this.rangeStartIndex = null;
     this.rangeEndIndex = null;
 
@@ -51,6 +53,9 @@ class CountyTrends {
     this.drawer.addEventListener('wa-hide', () => this.onDrawerClose());
     this.drawer.addEventListener('wa-show', () => this.onDrawerOpen());
 
+    // Set up tab switching
+    this.setupTabs();
+
     this.isInitialized = true;
   }
 
@@ -62,8 +67,11 @@ class CountyTrends {
       this.drawer.open = true;
       
       // Load chart data if not already loaded (cached after first load)
-      if (this.monthlyData.length === 0) {
+      if (!this.monthlyData.labels) {
         await this.loadTrendsData();
+      } else if (this.activeTab === 'region') {
+        this.buildRegionalData();
+        this.renderRegionalVisualization();
       } else {
         this.renderVisualization();
       }
@@ -91,6 +99,263 @@ class CountyTrends {
    */
   onDrawerClose() {
     // Future: Clean up any resources when drawer closes
+  }
+
+  /**
+   * Set up tab switching between County and Region views
+   */
+  setupTabs() {
+    const tabs = this.drawer.querySelectorAll('.trends-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Update active state
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        this.activeTab = tab.dataset.tab;
+
+        // Update drawer label
+        this.drawer.label = this.activeTab === 'region'
+          ? 'Monthly Regional Eviction Filings'
+          : 'Monthly County Eviction Filings';
+
+        // Re-render if data is loaded
+        if (this.monthlyData.labels) {
+          if (this.activeTab === 'region') {
+            this.buildRegionalData();
+            this.renderRegionalVisualization();
+          } else {
+            this.renderVisualization();
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Build regional total data by summing county datasets
+   */
+  buildRegionalData() {
+    if (!this.monthlyData || !this.monthlyData.datasets) return;
+
+    const numMonths = this.monthlyData.labels.length;
+    const regionalValues = new Array(numMonths).fill(0);
+
+    this.monthlyData.datasets.forEach(dataset => {
+      dataset.data.forEach((val, i) => {
+        regionalValues[i] += val || 0;
+      });
+    });
+
+    this.regionalData = {
+      labels: this.monthlyData.labels,
+      datasets: [{
+        label: '5-County Region Total',
+        data: regionalValues,
+        borderColor: '#FDB713',
+        backgroundColor: 'transparent',
+        borderWidth: 3,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointBackgroundColor: '#FDB713',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1
+      }]
+    };
+  }
+
+  /**
+   * Render regional total visualization
+   */
+  renderRegionalVisualization() {
+    if (!this.regionalData || !this.chartCanvas) return;
+
+    try {
+      if (this.chart) {
+        this.chart.destroy();
+      }
+
+      const ctx = this.chartCanvas.getContext('2d');
+
+      const currentMonth = this.dataLoader.getCurrentMonth();
+      const monthUtils = this.dataLoader.getMonthUtils();
+      const currentMonthIndex = monthUtils.dbMonthToSliderIndex(currentMonth);
+
+      if (this.dataLoader.isInRangeMode()) {
+        this.rangeStartIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getStartMonth());
+        this.rangeEndIndex = monthUtils.dbMonthToSliderIndex(this.dataLoader.getEndMonth());
+      } else {
+        this.rangeStartIndex = null;
+        this.rangeEndIndex = null;
+      }
+
+      const allMonths = monthUtils.getAllMonths();
+      const countyTrends = this;
+
+      const verticalLinePlugin = {
+        id: 'verticalLine',
+        afterDraw: (chart) => {
+          const ctx = chart.ctx;
+          const chartArea = chart.chartArea;
+          const xScale = chart.scales.x;
+
+          const moratoriumPeriods = [
+            { name: 'CARES Act', start: '2020-03', end: '2020-07', color: 'rgba(128, 128, 128, 0.15)' },
+            { name: 'CDC', start: '2020-09', end: '2021-10', color: 'rgba(128, 128, 128, 0.15)' }
+          ];
+
+          moratoriumPeriods.forEach(period => {
+            const startIndex = allMonths.findIndex(m => m === period.start);
+            const endIndex = allMonths.findIndex(m => m === period.end);
+
+            if (startIndex >= 0 && endIndex >= 0 && endIndex >= startIndex) {
+              const xStart = xScale.getPixelForValue(startIndex);
+              const xEnd = xScale.getPixelForValue(endIndex);
+
+              ctx.save();
+              ctx.fillStyle = period.color;
+              ctx.fillRect(xStart, chartArea.top, xEnd - xStart, chartArea.bottom - chartArea.top);
+              ctx.restore();
+
+              ctx.save();
+              ctx.fillStyle = 'rgba(80, 80, 80, 0.8)';
+              ctx.font = '500 11px "DINPro", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'top';
+              const labelX = (xStart + xEnd) / 2;
+              const labelY = chartArea.top + 5;
+              ctx.fillText(period.name, labelX, labelY);
+              ctx.fillText('Moratorium', labelX, labelY + 13);
+              ctx.restore();
+            }
+          });
+
+          if (countyTrends.rangeStartIndex !== null && countyTrends.rangeEndIndex !== null) {
+            [countyTrends.rangeStartIndex, countyTrends.rangeEndIndex].forEach(idx => {
+              if (idx >= 0 && idx < countyTrends.regionalData.labels.length) {
+                const xPos = xScale.getPixelForValue(idx);
+                ctx.save();
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(xPos, chartArea.top);
+                ctx.lineTo(xPos, chartArea.bottom);
+                ctx.stroke();
+                ctx.restore();
+              }
+            });
+          } else if (countyTrends.currentMonthIndex >= 0 && countyTrends.currentMonthIndex < countyTrends.regionalData.labels.length) {
+            const xPos = xScale.getPixelForValue(countyTrends.currentMonthIndex);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(xPos, chartArea.top);
+            ctx.lineTo(xPos, chartArea.bottom);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          if (chart.tooltip && chart.tooltip.opacity > 0) {
+            const activeElements = chart.tooltip.dataPoints;
+            if (activeElements && activeElements.length > 0) {
+              const xPos = activeElements[0].element.x;
+              ctx.save();
+              ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+              ctx.lineWidth = 1;
+              ctx.setLineDash([]);
+              ctx.beginPath();
+              ctx.moveTo(xPos, chartArea.top);
+              ctx.lineTo(xPos, chartArea.bottom);
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+        }
+      };
+
+      this.currentMonthIndex = currentMonthIndex;
+
+      this.chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: this.regionalData.labels,
+          datasets: this.regionalData.datasets
+        },
+        plugins: [verticalLinePlugin],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              title: { display: true, text: '', font: { size: 14, weight: '500', family: 'DINPro, sans-serif' } },
+              grid: { display: false },
+              ticks: {
+                maxTicksLimit: 20,
+                font: { size: 12, weight: '400', family: 'DINPro, sans-serif' },
+                callback: function(value, index, ticks) {
+                  const label = this.getLabelForValue(value);
+                  if (index === 0 || index === ticks.length - 1 || index % 4 === 0) return label;
+                  return '';
+                }
+              }
+            },
+            y: {
+              title: { display: true, text: 'Eviction Filings', font: { size: 14, weight: '500', family: 'DINPro, sans-serif' } },
+              grid: { display: false },
+              beginAtZero: true,
+              ticks: {
+                font: { size: 12, weight: '400', family: 'DINPro, sans-serif' },
+                callback: function(value) { return value.toLocaleString(); }
+              }
+            }
+          },
+          plugins: {
+            title: { display: false },
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 15,
+                font: { size: 14, weight: '500', family: 'DINPro, sans-serif' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#58585A',
+              titleColor: 'white',
+              bodyColor: 'white',
+              cornerRadius: 6,
+              titleFont: { family: 'DINPro, sans-serif', weight: '500', size: 13 },
+              bodyFont: { family: 'DINPro, sans-serif', weight: '400', size: 12 },
+              callbacks: {
+                label: function(context) {
+                  const value = context.parsed.y.toLocaleString();
+                  return `Region Total: ${value} filings`;
+                }
+              }
+            }
+          },
+          interaction: { intersect: false, mode: 'index' },
+          hover: { mode: 'index', intersect: false }
+        }
+      });
+
+      // Update help text
+      const explanationEl = document.querySelector('#countyTrendsDrawer .chart-explanation p i');
+      if (explanationEl) {
+        if (this.dataLoader.isInRangeMode()) {
+          explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider.';
+        } else {
+          explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider.';
+        }
+      }
+    } catch (error) {
+      this.showError('Failed to render regional chart');
+    }
   }
 
   /**
@@ -168,7 +433,12 @@ class CountyTrends {
 
       // Hide loading indicator and render chart
       this.hideLoading();
-      this.renderVisualization();
+      if (this.activeTab === 'region') {
+        this.buildRegionalData();
+        this.renderRegionalVisualization();
+      } else {
+        this.renderVisualization();
+      }
 
     } catch (error) {
       this.hideLoading();
@@ -506,13 +776,21 @@ class CountyTrends {
       this.rangeEndIndex = null;
     }
 
-    // Update help text based on range mode
+    // Update help text based on range mode and active tab
     const explanationEl = document.querySelector('#countyTrendsDrawer .chart-explanation p i');
     if (explanationEl) {
-      if (this.dataLoader.isInRangeMode()) {
-        explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+      if (this.activeTab === 'region') {
+        if (this.dataLoader.isInRangeMode()) {
+          explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider.';
+        } else {
+          explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider.';
+        }
       } else {
-        explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+        if (this.dataLoader.isInRangeMode()) {
+          explanationEl.textContent = 'Vertical dashed lines show the date range selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+        } else {
+          explanationEl.textContent = 'Vertical dashed line represents the period selected on the map\'s time slider. Click a county in the legend above to hide it from the chart.';
+        }
       }
     }
 
@@ -525,6 +803,7 @@ class CountyTrends {
    */
   clearCache() {
     this.monthlyData = [];
+    this.regionalData = null;
   }
 }
 
