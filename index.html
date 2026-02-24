@@ -88,7 +88,7 @@
     <div id="sliderContainer">
       <div id="filingModeInline">
         <wa-switch id="filingModeSelector" checked></wa-switch>
-        <span id="filingModeLabel">Show Map<br>as Rate</span>
+        <span id="filingModeLabel">Show Map<br />as Rate</span>
         <wa-tooltip
           for="filingModeSelector"
           placement="top"
@@ -195,20 +195,31 @@
     >
       <div class="trends-tab-bar">
         <button class="trends-tab active" data-tab="county">By County</button>
+        <button class="trends-tab" data-tab="city">By City</button>
         <button class="trends-tab" data-tab="region">By Region Total</button>
       </div>
       <div class="county-trends-content">
+        <div class="chart-explanation">
+          <p>
+            <i
+              >Vertical dashed line represents the period selected on the
+              map's time slider. Click a county in the legend above to hide it
+              from the chart.</i
+            >
+          </p>
+        </div>
         <div class="county-chart-container">
           <canvas id="countyTrendsChart"></canvas>
-          <div class="chart-explanation">
-            <p style="font-size: 16px">
-              <i
-                >Vertical dashed line represents the period selected on the
-                map's time slider. Click a county in the legend above to hide it
-                from the chart.</i
-              >
-            </p>
-          </div>
+        </div>
+        <div id="citySelectWrapper" class="city-select-wrapper">
+          <wa-select
+            id="cityMultiSelect"
+            label="Select up to 5 cities:"
+            multiple
+            with-clear
+            max-options-visible="0"
+          >
+          </wa-select>
         </div>
         <div id="chartLoadingIndicator" class="chart-loading hidden">
           <wa-spinner style="font-size: 4rem"></wa-spinner>

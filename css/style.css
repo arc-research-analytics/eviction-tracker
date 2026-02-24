@@ -707,6 +707,85 @@ a.mapboxgl-ctrl-logo {
     border-bottom-color: #1270B3;
 }
 
+/* City select wrapper — hidden until city tab is active */
+.city-select-wrapper {
+    display: none;
+    padding: 3px 0 0 0;
+}
+
+/* City mode: flex column so the chart and select share available space reliably.
+   Height is anchored directly to the drawer size instead of relying on a
+   percentage chain that breaks through WA's Shadow DOM body. */
+.county-trends-content.city-mode {
+    display: flex;
+    flex-direction: column;
+    height: calc(85vh - 220px); /* drawer(85vh) - WA header/footer(~120px) - tab bar(~45px) - select(~40px) */
+    overflow: hidden;
+}
+
+.county-trends-content.city-mode .county-chart-container {
+    flex: 1 1 0;    /* grow to fill, shrink if needed */
+    height: 0;      /* flex algorithm controls height, not the default calc() */
+    min-height: 250px;
+    max-height: none;
+}
+
+.county-trends-content.city-mode .city-select-wrapper {
+    display: block;
+    flex-shrink: 0; /* never compress the select widget */
+    width: 75%;
+    margin: 0 auto;
+}
+
+/* Match app font in the city multi-select */
+#cityMultiSelect::part(form-control-label) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #58585A;
+}
+
+#cityMultiSelect::part(combobox) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* Prevent city name tags from truncating.
+   ::part(tag) alone doesn't reach inside wa-tag's shadow DOM;
+   WA/Shoelace forwards the inner content part so we can target it directly. */
+#cityMultiSelect::part(tag) {
+    max-width: none;
+}
+
+#cityMultiSelect::part(tag__content),
+#cityMultiSelect::part(tag__label) {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+    max-width: none;
+}
+
+/* DINPro font for city names in the dropdown list */
+#cityMultiSelect wa-option::part(base),
+#cityMultiSelect wa-option::part(label) {
+    font-family: 'DINPro', Arial, sans-serif;
+    font-weight: 400;
+}
+
+/* Explanation text above the chart in the trends drawer */
+#countyTrendsDrawer .chart-explanation {
+    margin: 0 0 8px 0;
+    flex-shrink: 0; /* prevent compression in city mode flex layout */
+}
+
+#countyTrendsDrawer .chart-explanation p {
+    margin: 0;
+    font-size: 15px;
+    color: #666;
+    text-align: center;
+    font-family: 'DINPro', Arial, sans-serif;
+}
+
 /* County Trends Drawer Styles */
 .county-trends-drawer {
     --width: 90vw;
@@ -727,13 +806,10 @@ a.mapboxgl-ctrl-logo {
 /* Chart container specifically for county-wide trends drawer (when clicking "Show County Trends") */
 .county-chart-container {
     position: relative;
-    height: calc(100% - 30px);
-    /* Fill most of the available content space */
+    height: calc(100% - 55px); /* 100% of content area minus explanation text (~35px) + gap (20px) */
     width: 100%;
     min-height: 400px;
-    /* Ensure good readability */
-    max-height: calc(100% - 30px);
-    /* Prevent overflow */
+    max-height: calc(100% - 55px);
 }
 
 .chart-loading {
@@ -771,6 +847,11 @@ a.mapboxgl-ctrl-logo {
 
 .mapboxgl-ctrl-attrib-inner {
     display: none;
+}
+
+/* Prevent the drawer body from showing a scrollbar in city mode */
+#countyTrendsDrawer::part(body) {
+    overflow: hidden;
 }
 
 /* County trends drawer title */
