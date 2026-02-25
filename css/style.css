@@ -120,10 +120,6 @@ header {
     box-sizing: border-box;
 }
 
-header span {
-    padding-bottom: 3px;
-}
-
 header a {
     display: flex;
     align-items: center;
