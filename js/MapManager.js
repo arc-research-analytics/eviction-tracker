@@ -41,6 +41,10 @@ class MapManager {
             attributionControl: false,
         });
 
+        // disable map rotation
+        this.map.dragRotate.disable();
+        this.map.touchZoomRotate.disableRotation();
+
         // Initialize sub-managers after map is created
         this.initializeSubManagers();
 
