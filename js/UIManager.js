@@ -111,6 +111,21 @@ class UIManager {
 
         document.body.appendChild(legend);
 
+        // On mobile: move the filing-mode toggle into the top of the legend card
+        // so it stacks above the horizontal bar instead of floating separately.
+        if (window.innerWidth <= 768) {
+            const toggleEl = document.getElementById('filingModeInline');
+            const dividerEl = document.getElementById('sliderDivider');
+            if (toggleEl) {
+                legend.prepend(toggleEl);
+                // Fix label: removing the <br> via CSS merges text nodes without a space,
+                // producing "Show Mapas Rate". Replace with a plain single-line string.
+                const labelEl = toggleEl.querySelector('#filingModeLabel');
+                if (labelEl) labelEl.textContent = 'Show Map as Rate';
+            }
+            if (dividerEl) dividerEl.style.display = 'none';
+        }
+
         // After legend is added, match toggle container width
         this.matchToggleContainerWidth();
     }
@@ -144,9 +159,17 @@ class UIManager {
 
         const isRate = displayMode === 'rate';
         const unit = isRate ? '%' : '';
+        const isMobile = window.innerWidth <= 768;
 
-        // Tick labels: top (darkest) to bottom (lightest)
-        const tickLabels = [
+        // Desktop: dark (highest) at top → light (0%) at bottom (vertical bar)
+        // Mobile:  light (0%) on left → dark (highest) on right (horizontal bar)
+        const tickLabels = isMobile ? [
+            isRate ? '0%' : '0',
+            isRate ? '>0%' : '>0',
+            `${breakpoints[1]}${unit}`,
+            `${breakpoints[2]}${unit}`,
+            `${breakpoints[3]}${unit}+`
+        ] : [
             `${breakpoints[3]}${unit}+`,
             `${breakpoints[2]}${unit}`,
             `${breakpoints[1]}${unit}`,
@@ -159,8 +182,11 @@ class UIManager {
             ? '"Rate" defined as the total filings divided by the number of renter-occupied housing units in 2023.'
             : `Raw eviction count for the given month in the ${geographyName.toLowerCase().replace('h3', 'H3')}.`;
 
+        // On mobile the toggle was prepended into the legend; save it before innerHTML wipe
+        const existingToggle = legend.querySelector('#filingModeInline');
+
         legend.innerHTML = `
-            <h4 style="text-align: center;">${titleMode}<br/>by ${geographyName}</h4>
+            <h4 style="text-align: center;">${titleMode}${isMobile ? ' ' : '<br/>'}by ${geographyName}</h4>
             <div class="legend-bar-wrapper">
                 <div class="legend-bar" id="legendBar">
                     <div class="legend-hover-band" id="legendHoverBand"></div>
@@ -171,16 +197,22 @@ class UIManager {
                 </div>
             </div>
             <div class="legend-filter-row">
-                <span class="legend-filter-hint">Click scale to filter map</span>
+                <span class="legend-filter-hint">${isMobile ? 'Click color scale to filter map' : 'Click color scale<br/>to filter map'}</span>
                 <div class="legend-reset-btn-area">
-                    <wa-tooltip for="legendResetBtn">Clear filter</wa-tooltip>
+                    ${isMobile ? '' : '<wa-tooltip for="legendResetBtn">Clear filter</wa-tooltip>'}
                     <wa-button id="legendResetBtn" appearance="plain" size="small" style="visibility: hidden;">
-                        <wa-icon name="filter-circle-xmark"></wa-icon>
+                        <wa-icon name="filter-circle-xmark" class="legend-reset-icon"></wa-icon>
+                        <span class="legend-reset-text">Clear filter</span>
                     </wa-button>
                 </div>
             </div>
             <div class="legend-explanation">${explanation}</div>
         `;
+
+        // On mobile, re-prepend the toggle if it was present before innerHTML wipe
+        if (existingToggle) {
+            legend.prepend(existingToggle);
+        }
 
         // Attach click handler to bar.
         // Use legend.querySelector instead of document.getElementById so this works
@@ -196,9 +228,23 @@ class UIManager {
             legendBar.addEventListener('mousemove', (e) => {
                 if (!hoverBand) return;
                 const rect = legendBar.getBoundingClientRect();
-                const relY = e.clientY - rect.top;
-                const zone = Math.min(Math.floor(relY / rect.height * 5), 4);
-                hoverBand.style.top = (zone * 20) + '%';
+                const isHoriz = rect.width > rect.height;
+                const zone = isHoriz
+                    ? Math.min(Math.floor((e.clientX - rect.left) / rect.width * 5), 4)
+                    : Math.min(Math.floor((e.clientY - rect.top) / rect.height * 5), 4);
+                if (isHoriz) {
+                    hoverBand.style.left = (zone * 20) + '%';
+                    hoverBand.style.top = '0';
+                    hoverBand.style.width = '20%';
+                    hoverBand.style.height = '100%';
+                    hoverBand.style.right = 'auto';
+                } else {
+                    hoverBand.style.top = (zone * 20) + '%';
+                    hoverBand.style.left = '0';
+                    hoverBand.style.right = '0';
+                    hoverBand.style.height = '20%';
+                    hoverBand.style.width = 'auto';
+                }
                 hoverBand.style.display = 'block';
             });
 
@@ -209,9 +255,14 @@ class UIManager {
             legendBar.addEventListener('click', (e) => {
                 if (!this.layerManager) return;
                 const rect = legendBar.getBoundingClientRect();
-                const relY = e.clientY - rect.top;
-                const zone = Math.min(Math.floor(relY / rect.height * 5), 4);
-                const threshold = thresholds[zone];
+                const isHoriz = rect.width > rect.height;
+                const zone = isHoriz
+                    ? Math.min(Math.floor((e.clientX - rect.left) / rect.width * 5), 4)
+                    : Math.min(Math.floor((e.clientY - rect.top) / rect.height * 5), 4);
+                // Horizontal bar: light(0%) left → dark right, zones 0–4 = [0, 0.001, bp1, bp2, bp3]
+                // Vertical bar:   dark top → light bottom, zones 0–4 = [bp3, bp2, bp1, 0.001, 0]
+                const horizThresholds = [0, 0.001, bp[1], bp[2], bp[3]];
+                const threshold = isHoriz ? horizThresholds[zone] : thresholds[zone];
                 // Toggle off if clicking the same active zone
                 const newThreshold = threshold === this.layerManager.filterThreshold ? 0 : threshold;
                 this.layerManager.setFilterThreshold(newThreshold);
@@ -237,19 +288,35 @@ class UIManager {
     _updateThresholdIndicator(threshold, breakpoints) {
         const line = document.getElementById('legendThresholdLine');
         const resetBtn = document.getElementById('legendResetBtn');
+        const bar = document.getElementById('legendBar');
         if (!line) return;
 
         if (threshold > 0) {
-            const thresholds = [breakpoints[3], breakpoints[2], breakpoints[1], 0.001];
-            const zoneIndex = thresholds.findIndex(t => t === threshold);
+            // zoneIndex here is always the vertical ordering: [bp3, bp2, bp1, 0.001]
+            const vertThresholds = [breakpoints[3], breakpoints[2], breakpoints[1], 0.001];
+            const zoneIndex = vertThresholds.findIndex(t => t === threshold);
             if (zoneIndex !== -1) {
-                // Position line at the bottom boundary of the clicked zone
-                line.style.top = ((zoneIndex + 1) * 20) + '%';
+                const isHoriz = bar && bar.offsetWidth > bar.offsetHeight;
+                if (isHoriz) {
+                    // Horizontal bar: light(0%) on left, dark on right.
+                    // verticalZoneIndex 0 = darkest = horizontal zone 4 (rightmost).
+                    // Line sits at the LEFT boundary of the clicked zone.
+                    const horizZone = 4 - zoneIndex;
+                    line.style.left = (horizZone * 20) + '%';
+                    line.style.top = '';
+                    line.classList.add('horizontal');
+                } else {
+                    // Vertical bar: line at the BOTTOM boundary of the clicked zone.
+                    line.style.top = ((zoneIndex + 1) * 20) + '%';
+                    line.style.left = '';
+                    line.classList.remove('horizontal');
+                }
                 line.classList.add('active');
             }
             if (resetBtn) resetBtn.style.visibility = 'visible';
         } else {
             line.classList.remove('active');
+            line.classList.remove('horizontal');
             if (resetBtn) resetBtn.style.visibility = 'hidden';
         }
     }

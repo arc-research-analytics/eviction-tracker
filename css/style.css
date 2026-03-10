@@ -275,6 +275,16 @@ header a {
     display: block;
 }
 
+/* Vertical threshold line used when bar is horizontal (mobile) */
+.legend-threshold-line.horizontal {
+    width: 3px;
+    height: calc(100% + 8px);
+    top: -4px;
+    bottom: auto;
+    left: auto;
+    right: auto;
+}
+
 .legend-filter-hint {
     font-size: 13px;
     color: #58585A;
@@ -316,6 +326,10 @@ header a {
     color: #ffffff;
     border-color: #e31a1c;
 }
+
+/* Desktop: show icon, hide text label */
+.legend-reset-text { display: none; }
+.legend-reset-icon { display: inline-flex; }
 
 /* Legend explanatory text */
 .legend-explanation {
@@ -964,6 +978,11 @@ wa-radio[appearance="button"]::part(label) {
 /* Mobile responsive styles */
 @media (max-width: 768px) {
 
+    /* Disable all tooltips on mobile — no hover state exists on touch devices */
+    wa-tooltip {
+        display: none !important;
+    }
+
     /* Hide download button on mobile */
     #downloadFilteredData {
         display: none;
@@ -1043,15 +1062,9 @@ wa-radio[appearance="button"]::part(label) {
         font-size: 13px;
     }
 
-    /* Reposition slider for vertical orientation on mobile */
+    /* Slider is moved into drawer on mobile; hide it in its original position */
     #sliderContainer {
-        bottom: 20px;
-        left: 20px;
-        top: auto;
-        transform: none;
-        width: 80px;
-        height: auto;
-        padding: 10px 10px 8px 10px;
+        display: none;
     }
 
     /* Adjust slider label for vertical orientation */
@@ -1063,31 +1076,120 @@ wa-radio[appearance="button"]::part(label) {
         text-align: center;
     }
 
-    /* Make vertical slider more compact */
-    #monthSlider {
-        height: 250px;
-    }
-
-    /* Hide the label text on the slider itself when vertical */
+    /* Hide the label text on the slider itself on mobile */
     #monthSlider::part(label) {
         display: none;
     }
 
-    /* Make legend horizontal and centered on mobile */
+    /* Legend: horizontal layout on mobile */
     .legend {
         bottom: 15px;
         right: auto;
         left: 50%;
         transform: translateX(-50%);
-        width: auto;
-        max-width: 200px;
-        padding: 10px;
-        text-align: center;
+        width: min(320px, calc(100vw - 30px));
+        max-width: none;
+        padding: 12px;
+        text-align: left;
     }
 
     .legend h4 {
-        font-size: 12px;
-        margin: 0 0 8px 0;
+        font-size: 13px;
+        margin: 8px 0;
+        text-align: center;
+    }
+
+    /* Toggle row inside legend on mobile */
+    .legend #filingModeInline {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding-bottom: 10px;
+        margin-bottom: 2px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    /* Toggle label font size is set in the legend-filter-row block below */
+
+    /* Horizontal bar: stack bar above tick labels */
+    .legend-bar-wrapper {
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 0;
+    }
+
+    /* Horizontal color bar: light (0%) on left → dark (highest) on right */
+    .legend-bar {
+        width: 100%;
+        height: 28px;
+        background: linear-gradient(to right,
+            #ffffcc 0%,  #ffffcc 20%,
+            #fed976 20%, #fed976 40%,
+            #fd8d3c 40%, #fd8d3c 60%,
+            #e31a1c 60%, #e31a1c 80%,
+            #800026 80%, #800026 100%
+        );
+    }
+
+    /* Tick labels spread horizontally below the bar */
+    .legend-bar-ticks {
+        flex-direction: row;
+        height: auto;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Vertical threshold line for horizontal bar */
+    .legend-threshold-line.horizontal {
+        width: 3px;
+        height: calc(100% + 8px);
+        top: -4px;
+        bottom: auto;
+        left: auto; /* set by JS */
+        right: auto;
+    }
+
+    /* Filter hint row */
+    .legend-filter-row {
+        margin-top: 8px;
+    }
+
+    .legend-filter-hint {
+        font-size: 15px;
+    }
+
+    .legend #filingModeLabel {
+        font-size: 15px;
+        white-space: nowrap;
+    }
+
+    /* Mobile: show "Clear filter" text, hide circular icon button */
+    .legend-reset-icon { display: none; }
+    .legend-reset-text { display: inline; }
+
+    #legendResetBtn::part(base) {
+        border-radius: 20px;
+        width: auto;
+        height: 28px;
+        min-height: unset;
+        min-width: unset;
+        padding: 0 12px;
+        line-height: 1;
+        background-color: transparent;
+        border: 1px solid #aaaaaa;
+        color: #58585A;
+        font-size: 13px;
+        font-family: 'DINPro', Arial, sans-serif;
+        font-weight: 400;
+        text-decoration: none;
+    }
+
+    #legendResetBtn::part(base):hover {
+        background-color: transparent;
+        border-color: #e31a1c;
+        color: #e31a1c;
     }
 
     /* Arrange legend items horizontally in 2 rows */
@@ -1112,21 +1214,39 @@ wa-radio[appearance="button"]::part(label) {
 
     /* Style slider when moved into drawer on mobile */
     #mobileSliderContainer #sliderContainer {
-        width: 140px;
-        height: auto;
-        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 10px 16px 8px;
         background: var(--ui-panel-bg);
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    #mobileSliderContainer #sliderMain {
+        width: 100%;
+        flex: none;
     }
 
     #mobileSliderContainer #monthSlider {
-        height: 200px;
+        width: 100%;
+        height: 36px;
+        overflow: hidden;
+    }
+
+    #mobileSliderContainer #monthSlider::part(base) {
+        min-height: unset;
+        height: 36px;
+        padding: 0;
+        overflow: hidden;
     }
 
     #mobileSliderContainer #sliderLabel {
-        font-size: 13px;
-        margin-top: 10px;
+        font-size: 14px;
+        margin-top: 6px;
+        margin-bottom: 0;
     }
 
     /* Make tract popups smaller on mobile */
