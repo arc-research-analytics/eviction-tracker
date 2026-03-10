@@ -303,6 +303,18 @@ class PopupManager {
             }
         };
 
+        // Set indices BEFORE creating the chart so afterDraw has them on initial render
+        this.currentMonthIndex = currentMonthIndex;
+        if (this.dataLoader.isInRangeMode()) {
+            const startLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getStartMonth());
+            const endLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getEndMonth());
+            this.rangeStartIndex = data.labels.indexOf(startLabel);
+            this.rangeEndIndex = data.labels.indexOf(endLabel);
+        } else {
+            this.rangeStartIndex = null;
+            this.rangeEndIndex = null;
+        }
+
         this.currentChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -412,18 +424,6 @@ class PopupManager {
         
         // Store chart data for potential updates
         this.chartData = data;
-        this.currentMonthIndex = currentMonthIndex;
-
-        // Compute range indices if in range mode
-        if (this.dataLoader.isInRangeMode()) {
-          const startLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getStartMonth());
-          const endLabel = monthUtils.dbMonthToHumanReadable(this.dataLoader.getEndMonth());
-          this.rangeStartIndex = data.labels.indexOf(startLabel);
-          this.rangeEndIndex = data.labels.indexOf(endLabel);
-        } else {
-          this.rangeStartIndex = null;
-          this.rangeEndIndex = null;
-        }
     }
 
     /**

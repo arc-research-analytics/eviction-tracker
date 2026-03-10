@@ -243,9 +243,15 @@ class LayerManager {
     /**
      * Load and display county outline
      */
+    getBoundaryFile(geographyType) {
+        return geographyType === 'tract'
+            ? 'data/region_boundaries_tract_simp.geojson'
+            : 'data/region_boundaries.geojson';
+    }
+
     async loadCountyOutline() {
         try {
-            const response = await fetch('data/region_boundaries.geojson');
+            const response = await fetch(this.getBoundaryFile(this.currentGeography));
             if (!response.ok) throw new Error('Failed to fetch county outline');
             
             const countyData = await response.json();
@@ -455,8 +461,20 @@ class LayerManager {
      * Switch geography type and reload layers
      */
     async switchGeography(geographyType) {
+        const prevGeography = this.currentGeography;
+
         // Set the new geography type
         this.setGeographyType(geographyType);
+
+        // Swap county boundary if alignment requirement changed (tract vs. non-tract)
+        const boundaryChanged = (prevGeography === 'tract') !== (geographyType === 'tract');
+        if (boundaryChanged && this.areCountyLayersLoaded()) {
+            const response = await fetch(this.getBoundaryFile(geographyType));
+            if (response.ok) {
+                const countyData = await response.json();
+                this.map.getSource('county-outline').setData(countyData);
+            }
+        }
 
         // Remove existing tract layers and source
         this.removeTractLayers();
@@ -500,17 +518,16 @@ class LayerManager {
         const breakpoints = this.colorBreakpoints[geographyType][displayMode];
         const colors = this.colorPalette;
 
-        // Build the Mapbox color scale expression
-        // Format: ['interpolate', ['linear'], ['get', 'displayvalue'], value1, color1, value2, color2, ...]
+        // Build the Mapbox color scale expression using discrete steps to match the legend
+        // Format: ['step', input, default_output, stop1, output1, stop2, output2, ...]
         return [
-            'interpolate',
-            ['linear'],
+            'step',
             ['get', 'displayvalue'],
-            breakpoints[0], colors[0],  // Light yellow
-            breakpoints[1], colors[1],  // Yellow
-            breakpoints[2], colors[2],  // Orange
-            breakpoints[3], colors[3],  // Red
-            breakpoints[4], colors[4]   // Dark red
+            colors[0],                 // 0 (no filings) → lightest
+            0.001,       colors[1],   // > 0 and < bp[1]
+            breakpoints[1], colors[2], // >= bp[1]
+            breakpoints[2], colors[3], // >= bp[2]
+            breakpoints[3], colors[4]  // >= bp[3] (top bucket, no upper bound needed)
         ];
     }
 
