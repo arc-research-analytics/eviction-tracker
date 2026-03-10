@@ -3,11 +3,12 @@
  * Create this as a separate file (MapTooltipHandler.js) and use it with your map
  */
 class MapTooltipHandler {
-    constructor(map, tooltipManager, censusLayerId, dataLoader = null) {
+    constructor(map, tooltipManager, censusLayerId, dataLoader = null, layerManager = null) {
         this.map = map;
         this.tooltipManager = tooltipManager;
         this.censusLayerId = censusLayerId;
         this.dataLoader = dataLoader;
+        this.layerManager = layerManager;
         this.capturedLatLng = null;
         this.isDragging = false;
         this.dragDetected = false; // Track if actual dragging occurred
@@ -42,8 +43,13 @@ class MapTooltipHandler {
 
             if (features.length > 0) {
                 const feature = features[0];
-                const content = this.generateTooltipContent(feature);
+                const displayValue = feature.properties.displayvalue || 0;
 
+                if (this.layerManager && this.layerManager.filterThreshold > 0 && displayValue < this.layerManager.filterThreshold) {
+                    return;
+                }
+
+                const content = this.generateTooltipContent(feature);
                 this.tooltipManager.show(content, e.point.x, e.point.y);
             }
         }
@@ -73,8 +79,16 @@ class MapTooltipHandler {
         
         if (features.length > 0) {
             const feature = features[0];
+            const displayValue = feature.properties.displayvalue || 0;
+
+            // Hide tooltip for features filtered out by the legend threshold
+            if (this.layerManager && this.layerManager.filterThreshold > 0 && displayValue < this.layerManager.filterThreshold) {
+                this.tooltipManager.hide();
+                return;
+            }
+
             const content = this.generateTooltipContent(feature);
-            
+
             if (this.tooltipManager.isTooltipVisible()) {
                 this.tooltipManager.updateContent(content);
                 this.tooltipManager.updatePosition(e.point.x, e.point.y);

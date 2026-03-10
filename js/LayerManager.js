@@ -70,6 +70,9 @@ class LayerManager {
 
         // Color palette used for all breakpoints (light → dark)
         this.colorPalette = ['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c', '#800026'];
+
+        // Filter threshold: hide features with displayvalue < this value (0 = no filter)
+        this.filterThreshold = 0;
     }
 
     /**
@@ -476,6 +479,9 @@ class LayerManager {
             }
         }
 
+        // Reset filter on geography switch
+        this.resetFilter();
+
         // Remove existing tract layers and source
         this.removeTractLayers();
 
@@ -535,8 +541,44 @@ class LayerManager {
      * Update color scale when display mode changes
      */
     updateColorScale() {
+        // Reset filter on display mode change
+        this.resetFilter();
         if (this.map.getLayer('tract-fills')) {
             this.map.setPaintProperty('tract-fills', 'fill-color', this.getColorScale());
         }
+    }
+
+    /**
+     * Set filter threshold and apply to map
+     */
+    setFilterThreshold(threshold) {
+        this.filterThreshold = threshold;
+        this._applyFillOpacity();
+    }
+
+    /**
+     * Reset filter to show all features
+     */
+    resetFilter() {
+        this.filterThreshold = 0;
+        this._applyFillOpacity();
+    }
+
+    /**
+     * Apply fill-opacity expression based on current filter threshold
+     */
+    _applyFillOpacity() {
+        if (!this.map.getLayer('tract-fills')) return;
+        const expr = this.filterThreshold > 0
+            ? ['case',
+                ['boolean', ['feature-state', 'hovered'], false], 0,
+                ['boolean', ['feature-state', 'selected'], false], 0,
+                ['<', ['get', 'displayvalue'], this.filterThreshold], 0,
+                0.7]
+            : ['case',
+                ['boolean', ['feature-state', 'hovered'], false], 0,
+                ['boolean', ['feature-state', 'selected'], false], 0,
+                0.7];
+        this.map.setPaintProperty('tract-fills', 'fill-opacity', expr);
     }
 }

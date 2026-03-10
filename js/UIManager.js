@@ -139,75 +139,119 @@ class UIManager {
         if (this.layerManager && this.layerManager.colorBreakpoints) {
             breakpoints = this.layerManager.colorBreakpoints[geographyType][displayMode];
         } else {
-            // Fallback to default tract breakpoints if layerManager not yet initialized
             breakpoints = displayMode === 'rate' ? [0, 2, 5, 8, 12] : [0, 10, 25, 60, 100];
         }
 
-        // Get color palette
-        const colors = this.layerManager?.colorPalette || ['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c', '#800026'];
+        const isRate = displayMode === 'rate';
+        const unit = isRate ? '%' : '';
 
-        if (displayMode === 'rate') {
-            legend.innerHTML = `
-                <h4 style="text-align: center;">Eviction Filing Rate<br/>by ${geographyName}</h4>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[0]};"></div>
-                    <span>${breakpoints[0]}%</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[1]};"></div>
-                    <span>${breakpoints[0]}-${breakpoints[1]}%</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[2]};"></div>
-                    <span>${breakpoints[1]}-${breakpoints[2]}%</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[3]};"></div>
-                    <span>${breakpoints[2]}-${breakpoints[3]}%</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[4]};"></div>
-                    <span>${breakpoints[3]}%+</span>
-                </div>
-                <div class="legend-explanation">
-                    "Rate" defined as the total filings
-                    divided by the number of renter-
-                    occupied housing units in 2023.
+        // Tick labels: top (darkest) to bottom (lightest)
+        const tickLabels = [
+            `${breakpoints[3]}${unit}+`,
+            `${breakpoints[2]}${unit}`,
+            `${breakpoints[1]}${unit}`,
+            isRate ? '>0%' : '>0',
+            isRate ? '0%' : '0'
+        ];
 
+        const titleMode = isRate ? 'Eviction Filing Rate' : 'Eviction Filings';
+        const explanation = isRate
+            ? '"Rate" defined as the total filings divided by the number of renter-occupied housing units in 2023.'
+            : `Raw eviction count for the given month in the ${geographyName.toLowerCase().replace('h3', 'H3')}.`;
+
+        legend.innerHTML = `
+            <h4 style="text-align: center;">${titleMode}<br/>by ${geographyName}</h4>
+            <div class="legend-bar-wrapper">
+                <div class="legend-bar" id="legendBar">
+                    <div class="legend-hover-band" id="legendHoverBand"></div>
+                    <div class="legend-threshold-line" id="legendThresholdLine"></div>
                 </div>
-            `;
-        } else {
-            legend.innerHTML = `
-                <h4 style="text-align: center;">Eviction Filings<br/>by ${geographyName}</h4>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[0]};"></div>
-                    <span>${breakpoints[0]}</span>
+                <div class="legend-bar-ticks">
+                    ${tickLabels.map(label => `<span>${label}</span>`).join('')}
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[1]};"></div>
-                    <span>${breakpoints[0] + 1}-${breakpoints[1]}</span>
+            </div>
+            <div class="legend-filter-row">
+                <span class="legend-filter-hint">Click scale to filter map</span>
+                <div class="legend-reset-btn-area">
+                    <wa-tooltip for="legendResetBtn">Clear filter</wa-tooltip>
+                    <wa-button id="legendResetBtn" appearance="plain" size="small" style="visibility: hidden;">
+                        <wa-icon name="filter-circle-xmark"></wa-icon>
+                    </wa-button>
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[2]};"></div>
-                    <span>${breakpoints[1] + 1}-${breakpoints[2]}</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[3]};"></div>
-                    <span>${breakpoints[2] + 1}-${breakpoints[3]}</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors[4]};"></div>
-                    <span>${breakpoints[3]}+</span>
-                </div>
-                <div class="legend-explanation">
-                    Raw eviction count for the given<br/>
-                    month in the ${geographyName.toLowerCase().replace('h3', 'H3')}.
-                </div>
-            `;
+            </div>
+            <div class="legend-explanation">${explanation}</div>
+        `;
+
+        // Attach click handler to bar.
+        // Use legend.querySelector instead of document.getElementById so this works
+        // even when legend hasn't been appended to the DOM yet (e.g. during addLegend()).
+        const legendBar = legend.querySelector('#legendBar');
+        const resetBtn = legend.querySelector('#legendResetBtn');
+
+        if (legendBar) {
+            const bp = breakpoints;
+            const thresholds = [bp[3], bp[2], bp[1], 0.001, 0];
+            const hoverBand = legend.querySelector('#legendHoverBand');
+
+            legendBar.addEventListener('mousemove', (e) => {
+                if (!hoverBand) return;
+                const rect = legendBar.getBoundingClientRect();
+                const relY = e.clientY - rect.top;
+                const zone = Math.min(Math.floor(relY / rect.height * 5), 4);
+                hoverBand.style.top = (zone * 20) + '%';
+                hoverBand.style.display = 'block';
+            });
+
+            legendBar.addEventListener('mouseleave', () => {
+                if (hoverBand) hoverBand.style.display = 'none';
+            });
+
+            legendBar.addEventListener('click', (e) => {
+                if (!this.layerManager) return;
+                const rect = legendBar.getBoundingClientRect();
+                const relY = e.clientY - rect.top;
+                const zone = Math.min(Math.floor(relY / rect.height * 5), 4);
+                const threshold = thresholds[zone];
+                // Toggle off if clicking the same active zone
+                const newThreshold = threshold === this.layerManager.filterThreshold ? 0 : threshold;
+                this.layerManager.setFilterThreshold(newThreshold);
+                this._updateThresholdIndicator(newThreshold, bp);
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (!this.layerManager) return;
+                this.layerManager.resetFilter();
+                this._updateThresholdIndicator(0, breakpoints);
+            });
         }
 
         // Match toggle container width after legend update
         this.matchToggleContainerWidth();
+    }
+
+    /**
+     * Update the threshold line position and reset button visibility
+     */
+    _updateThresholdIndicator(threshold, breakpoints) {
+        const line = document.getElementById('legendThresholdLine');
+        const resetBtn = document.getElementById('legendResetBtn');
+        if (!line) return;
+
+        if (threshold > 0) {
+            const thresholds = [breakpoints[3], breakpoints[2], breakpoints[1], 0.001];
+            const zoneIndex = thresholds.findIndex(t => t === threshold);
+            if (zoneIndex !== -1) {
+                // Position line at the bottom boundary of the clicked zone
+                line.style.top = ((zoneIndex + 1) * 20) + '%';
+                line.classList.add('active');
+            }
+            if (resetBtn) resetBtn.style.visibility = 'visible';
+        } else {
+            line.classList.remove('active');
+            if (resetBtn) resetBtn.style.visibility = 'hidden';
+        }
     }
 
     /**

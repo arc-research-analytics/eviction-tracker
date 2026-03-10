@@ -23,6 +23,14 @@ class InteractionManager {
     }
 
     /**
+     * Returns true if the feature is hidden by the active legend filter
+     */
+    _isFilteredOut(properties) {
+        const threshold = this.layerManager.filterThreshold;
+        return threshold > 0 && (properties.displayvalue || 0) < threshold;
+    }
+
+    /**
      * Set up all map interactions (hover, click, tooltip management)
      */
     setupMapInteractions() {
@@ -31,6 +39,9 @@ class InteractionManager {
             const idProperty = this.getIdProperty();
             const tractId = e.features[0].properties[idProperty];
             this.hoveredFeatureId = tractId;
+
+            // Skip hover effects for filtered-out features
+            if (this._isFilteredOut(e.features[0].properties)) return;
 
             // Show hover border (only if not selected)
             if (tractId !== this.selectedTractId) {
@@ -44,9 +55,6 @@ class InteractionManager {
                         { source: 'eviction-tracts', id: numericId },
                         { hovered: true }
                     );
-
-                    // Verify the state was set
-                    const state = this.map.getFeatureState({ source: 'eviction-tracts', id: numericId });
                 } catch (error) {
                 }
             }
@@ -74,8 +82,9 @@ class InteractionManager {
                 }
 
                 this.hoveredFeatureId = tractId;
-                // Don't show hover border if this tract is already selected
-                if (tractId !== this.selectedTractId) {
+
+                // Skip hover effects for filtered-out features
+                if (!this._isFilteredOut(properties) && tractId !== this.selectedTractId) {
                     this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], tractId]);
 
                     // Set hovered state for new tract
@@ -84,13 +93,20 @@ class InteractionManager {
                         { source: 'eviction-tracts', id: numericId },
                         { hovered: true }
                     );
+                } else if (this._isFilteredOut(properties)) {
+                    // Clear hover border when moving onto a filtered feature
+                    this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], '']);
                 }
             }
 
-            // Update tooltip content and position
-            const content = this.generateTooltipContent(properties);
-            this.tooltipManager.updateContent(content);
-            this.tooltipManager.updatePosition(e.point.x, e.point.y);
+            // Update tooltip content and position (only for non-filtered features)
+            if (!this._isFilteredOut(properties)) {
+                const content = this.generateTooltipContent(properties);
+                this.tooltipManager.updateContent(content);
+                this.tooltipManager.updatePosition(e.point.x, e.point.y);
+            } else {
+                this.tooltipManager.hide();
+            }
         });
 
         // Hide tooltip on mouse leave
@@ -157,8 +173,8 @@ class InteractionManager {
                 // Update hover state
                 this.hoveredFeatureId = tractId;
 
-                // Show hover border (only if not selected)
-                if (tractId !== this.selectedTractId) {
+                // Skip hover effects for filtered-out features
+                if (!this._isFilteredOut(feature.properties) && tractId !== this.selectedTractId) {
                     this.map.setFilter('tract-borders-hover', ['==', ['get', idProperty], tractId]);
 
                     // Set hovered state
@@ -167,12 +183,12 @@ class InteractionManager {
                         { source: 'eviction-tracts', id: numericId },
                         { hovered: true }
                     );
-                }
 
-                // Show tooltip
-                const content = this.generateTooltipContent(feature.properties);
-                this.tooltipManager.show(content, point[0] + 10, point[1] - 10);
-                this.tooltipManager.setPositionImmediate(point[0] + 10, point[1] - 10);
+                    // Show tooltip
+                    const content = this.generateTooltipContent(feature.properties);
+                    this.tooltipManager.show(content, point[0] + 10, point[1] - 10);
+                    this.tooltipManager.setPositionImmediate(point[0] + 10, point[1] - 10);
+                }
             }
         });
     }
