@@ -591,7 +591,7 @@ class EvictionApp {
         }
 
         // Initialize the map tooltip handler with dataLoader for display mode awareness
-        this.mapTooltipHandler = new MapTooltipHandler(map, tooltipManager, censusLayerId, this.dataLoader);
+        this.mapTooltipHandler = new MapTooltipHandler(map, tooltipManager, censusLayerId, this.dataLoader, this.mapManager.getLayerManager());
     }
 
     /**
