@@ -164,7 +164,6 @@
 
     <!-- Mobile welcome dialog (auto-opens on mobile devices) -->
     <wa-dialog
-      label="Welcome!"
       id="mobileWelcomeDialog"
       style="--width: calc(100vw - 40px); max-width: 500px"
     >
@@ -177,7 +176,8 @@
         </p>
         <p style="margin-bottom: 0">
           For the full experience with all features including county trends and
-          detailed statistics, please open this web page on a laptop or tablet.
+          detailed statistics, please open this web application on a laptop or
+          tablet.
         </p>
       </div>
       <wa-button slot="footer" variant="brand" data-dialog="close"
@@ -202,9 +202,9 @@
         <div class="chart-explanation">
           <p>
             <i
-              >Vertical dashed line represents the period selected on the
-              map's time slider. Click a county in the legend above to hide it
-              from the chart.</i
+              >Vertical dashed line represents the period selected on the map's
+              time slider. Click a county in the legend above to hide it from
+              the chart.</i
             >
           </p>
         </div>
@@ -331,20 +331,22 @@
         </div>
 
         <!-- Mobile slider container (slider moved here on mobile) -->
+        <hr
+          id="mobileSliderDivider"
+          class="drawer-divider"
+          style="
+            margin: 30px auto 0 auto;
+            border: 0;
+            border-top: 1px solid #ccc;
+            width: 100%;
+            display: none;
+          "
+        />
         <div
           id="mobileSliderContainer"
-          style="margin-top: 40px; display: none; text-align: center"
+          style="margin-top: 20px; display: none; text-align: center"
         >
-          <p
-            style="
-              margin-bottom: 15px;
-              font-size: 14px;
-              color: #333;
-              font-weight: 600;
-            "
-          >
-            Change eviction filing time period on map
-          </p>
+          <p class="drawer-section-label">Change Slider Time Period:</p>
         </div>
       </div>
       <div slot="footer" class="drawer-footer-buttons">
@@ -463,24 +465,22 @@
         }
       })();
 
-      // Set slider orientation to vertical on mobile devices and move to drawer
+      // Move slider into drawer on mobile (horizontal orientation)
       (function () {
         const setup = function () {
-          const slider = document.getElementById("monthSlider");
           const sliderContainer = document.getElementById("sliderContainer");
           const mobileSliderContainer = document.getElementById(
             "mobileSliderContainer",
           );
 
           if (
-            slider &&
             sliderContainer &&
             mobileSliderContainer &&
             window.innerWidth <= 768
           ) {
-            slider.setAttribute("orientation", "vertical");
-            // Remove the helper text label on mobile
-            slider.removeAttribute("label");
+            // Show the divider above the slider section
+            const mobileSliderDivider = document.getElementById("mobileSliderDivider");
+            if (mobileSliderDivider) mobileSliderDivider.style.display = "block";
 
             // Move the entire slider container into the drawer on mobile
             mobileSliderContainer.appendChild(sliderContainer);
