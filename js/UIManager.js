@@ -182,7 +182,7 @@ class UIManager {
         const titleMode = isRate ? 'Eviction Filing Rate' : 'Eviction Filings';
         const explanation = isRate
             ? '"Rate" defined as the total filings divided by the number of renter-occupied housing units in 2023.'
-            : `Raw eviction count for the given month in the ${geographyName.toLowerCase().replace('h3', 'H3')}.`;
+            : `Eviction filing count for the given month in the ${geographyName.toLowerCase().replace('h3', 'H3')}.`;
 
         // On mobile the toggle was prepended into the legend; save it before innerHTML wipe
         const existingToggle = legend.querySelector('#filingModeInline');
