@@ -73,6 +73,10 @@ class LayerManager {
 
         // Filter threshold: hide features with displayvalue < this value (0 = no filter)
         this.filterThreshold = 0;
+
+        // Cache for GeoJSON boundary files — keyed by file path.
+        // The geometry never changes; only eviction values do, so we only fetch once per geography.
+        this._geojsonCache = {};
     }
 
     /**
@@ -335,12 +339,15 @@ class LayerManager {
                 return await this.loadTractBoundaries();
             }
 
-            // Get fresh tract data
+            // Load boundary GeoJSON, using cache to avoid re-fetching on every slider change.
+            // structuredClone() copies the object in memory (fast) rather than hitting the network.
             const config = this.geographyConfig[this.currentGeography];
-            const response = await fetch(config.file);
-            if (!response.ok) throw new Error(`Failed to fetch ${config.name} boundaries`);
-
-            const tractData = await response.json();
+            if (!this._geojsonCache[config.file]) {
+                const response = await fetch(config.file);
+                if (!response.ok) throw new Error(`Failed to fetch ${config.name} boundaries`);
+                this._geojsonCache[config.file] = await response.json();
+            }
+            const tractData = structuredClone(this._geojsonCache[config.file]);
             const evictionData = this.dataLoader.getEvictionData();
 
             // Clear previous ID mappings
@@ -513,15 +520,35 @@ class LayerManager {
     }
 
     /**
+     * Get breakpoints for current geography/mode, scaled by range month count when in range mode.
+     * Rate mode is never scaled (rates are per-unit, not cumulative).
+     */
+    getEffectiveBreakpoints() {
+        const displayMode = this.dataLoader.getDisplayMode();
+        const geographyType = this.currentGeography;
+        const base = this.colorBreakpoints[geographyType][displayMode];
+
+        if (!this.dataLoader.isInRangeMode() || displayMode === 'rate') return base;
+
+        const months = this.dataLoader.getRangeMonthCount();
+        if (months <= 1) return base;
+
+        return [
+            base[0],
+            Math.round(base[1] * months),
+            Math.round(base[2] * months),
+            Math.round(base[3] * months),
+            base[4]
+        ];
+    }
+
+    /**
      * Get color scale based on current geography and display mode
      * Uses configurable breakpoints from this.colorBreakpoints
      */
     getColorScale() {
-        const displayMode = this.dataLoader.getDisplayMode();
-        const geographyType = this.currentGeography;
-
         // Get the appropriate breakpoints for this geography and display mode
-        const breakpoints = this.colorBreakpoints[geographyType][displayMode];
+        const breakpoints = this.getEffectiveBreakpoints();
         const colors = this.colorPalette;
 
         // Build the Mapbox color scale expression using discrete steps to match the legend
