@@ -391,6 +391,23 @@ class DataLoader {
     getEndMonth() { return this.endMonth; }
 
     /**
+     * Get number of months in the current range (returns 1 if not in range mode)
+     */
+    getRangeMonthCount() {
+        if (!this.startMonth || !this.endMonth) return 1;
+        return this.getMonthsInRange(this.startMonth, this.endMonth).length || 1;
+    }
+
+    /**
+     * Sum totalfilings from already-loaded evictionData (no DB query needed).
+     * Use this instead of calculateTotalEvictionsForRange() when data is already in memory.
+     */
+    calculateTotalFromLoadedData() {
+        return Object.values(this.evictionData)
+            .reduce((sum, d) => sum + (d.totalfilings || 0), 0);
+    }
+
+    /**
      * Get array of month strings between start and end (inclusive)
      */
     getMonthsInRange(startMonth, endMonth) {
@@ -421,22 +438,37 @@ class DataLoader {
 
             const config = this.geographyConfig[this.currentGeography];
 
-            // Paginate to avoid Supabase's default 1,000-row limit
+            // Supabase caps responses at 1,000 rows server-side. To avoid 27 sequential
+            // round-trips for a full range, we fetch the first page (which also returns
+            // the exact row count), then fire all remaining pages in parallel.
             const pageSize = 1000;
-            let allData = [];
-            let from = 0;
+            const { data: firstPage, count, error: firstError } = await this.supabase
+                .from(config.table)
+                .select(`${config.idField}, totalfilings, filemonth`, { count: 'exact' })
+                .in('filemonth', supabaseMonths)
+                .range(0, pageSize - 1);
 
-            while (true) {
-                const { data: page, error } = await this.supabase
-                    .from(config.table)
-                    .select(`${config.idField}, totalfilings, filemonth`)
-                    .in('filemonth', supabaseMonths)
-                    .range(from, from + pageSize - 1);
+            if (firstError) throw firstError;
 
-                if (error) throw error;
-                if (page) allData = allData.concat(page);
-                if (!page || page.length < pageSize) break;
-                from += pageSize;
+            let allData = firstPage || [];
+
+            if (count > pageSize) {
+                const totalPages = Math.ceil(count / pageSize);
+                const remainingRequests = [];
+                for (let page = 1; page < totalPages; page++) {
+                    remainingRequests.push(
+                        this.supabase
+                            .from(config.table)
+                            .select(`${config.idField}, totalfilings, filemonth`)
+                            .in('filemonth', supabaseMonths)
+                            .range(page * pageSize, (page + 1) * pageSize - 1)
+                    );
+                }
+                const remainingResults = await Promise.all(remainingRequests);
+                for (const { data, error } of remainingResults) {
+                    if (error) throw error;
+                    if (data) allData = allData.concat(data);
+                }
             }
 
             this.evictionData = {};

@@ -149,10 +149,11 @@ class UIManager {
         };
         const geographyName = geographyNames[geographyType] || 'Census Tract';
 
-        // Get breakpoints from layer manager if available, otherwise use defaults
+        // Get breakpoints from layer manager if available, otherwise use defaults.
+        // getEffectiveBreakpoints() scales by month count when in range mode.
         let breakpoints;
-        if (this.layerManager && this.layerManager.colorBreakpoints) {
-            breakpoints = this.layerManager.colorBreakpoints[geographyType][displayMode];
+        if (this.layerManager && this.layerManager.getEffectiveBreakpoints) {
+            breakpoints = this.layerManager.getEffectiveBreakpoints();
         } else {
             breakpoints = displayMode === 'rate' ? [0, 2, 5, 8, 12] : [0, 10, 25, 60, 100];
         }
@@ -160,19 +161,20 @@ class UIManager {
         const isRate = displayMode === 'rate';
         const unit = isRate ? '%' : '';
         const isMobile = window.innerWidth <= 768;
+        const fmt = v => isRate ? v : v.toLocaleString();
 
         // Desktop: dark (highest) at top → light (0%) at bottom (vertical bar)
         // Mobile:  light (0%) on left → dark (highest) on right (horizontal bar)
         const tickLabels = isMobile ? [
             isRate ? '0%' : '0',
             isRate ? '>0%' : '>0',
-            `${breakpoints[1]}${unit}`,
-            `${breakpoints[2]}${unit}`,
-            `${breakpoints[3]}${unit}+`
+            `${fmt(breakpoints[1])}${unit}`,
+            `${fmt(breakpoints[2])}${unit}`,
+            `${fmt(breakpoints[3])}${unit}+`
         ] : [
-            `${breakpoints[3]}${unit}+`,
-            `${breakpoints[2]}${unit}`,
-            `${breakpoints[1]}${unit}`,
+            `${fmt(breakpoints[3])}${unit}+`,
+            `${fmt(breakpoints[2])}${unit}`,
+            `${fmt(breakpoints[1])}${unit}`,
             isRate ? '>0%' : '>0',
             isRate ? '0%' : '0'
         ];
@@ -233,17 +235,23 @@ class UIManager {
                     ? Math.min(Math.floor((e.clientX - rect.left) / rect.width * 5), 4)
                     : Math.min(Math.floor((e.clientY - rect.top) / rect.height * 5), 4);
                 if (isHoriz) {
+                    // Zone 0 = no-filter zone (leftmost, lightest) — no line to show
+                    if (zone === 0) { hoverBand.style.display = 'none'; return; }
                     hoverBand.style.left = (zone * 20) + '%';
-                    hoverBand.style.top = '0';
-                    hoverBand.style.width = '20%';
-                    hoverBand.style.height = '100%';
+                    hoverBand.style.top = '-4px';
+                    hoverBand.style.bottom = '-4px';
+                    hoverBand.style.width = '2px';
+                    hoverBand.style.height = 'auto';
                     hoverBand.style.right = 'auto';
                 } else {
-                    hoverBand.style.top = (zone * 20) + '%';
-                    hoverBand.style.left = '0';
-                    hoverBand.style.right = '0';
-                    hoverBand.style.height = '20%';
+                    // Zone 4 = no-filter zone (bottommost, lightest) — no line to show
+                    if (zone === 4) { hoverBand.style.display = 'none'; return; }
+                    hoverBand.style.top = ((zone + 1) * 20) + '%';
+                    hoverBand.style.left = '-4px';
+                    hoverBand.style.right = '-4px';
+                    hoverBand.style.height = '2px';
                     hoverBand.style.width = 'auto';
+                    hoverBand.style.bottom = 'auto';
                 }
                 hoverBand.style.display = 'block';
             });
@@ -464,7 +472,6 @@ class UIManager {
         newSlider.setAttribute('range', '');
         newSlider.setAttribute('min-value', String(startIdx));
         newSlider.setAttribute('max-value', String(endIdx));
-        newSlider.setAttribute('with-tooltip', '');
 
         // Replace old slider in the DOM
         oldSlider.parentNode.replaceChild(newSlider, oldSlider);

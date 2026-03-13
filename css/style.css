@@ -169,6 +169,8 @@ header a {
 .loading-text {
     margin-top: 20px;
     font-size: 18px;
+    font-family: 'DINPro-Bold', 'DINPro', Arial, sans-serif;
+    font-weight: bold;
     font-weight: bold;
 }
 
@@ -234,9 +236,6 @@ header a {
     );
 }
 
-.legend-bar:hover {
-    opacity: 0.9;
-}
 
 .legend-bar-ticks {
     position: relative;
@@ -251,13 +250,9 @@ header a {
 
 .legend-hover-band {
     position: absolute;
-    left: 0;
-    right: 0;
-    height: 20%;
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.3);
     pointer-events: none;
     display: none;
-    border-radius: 2px;
 }
 
 .legend-threshold-line {
