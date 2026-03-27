@@ -3,7 +3,6 @@ data/processed/
 
 .DS_Store
 js/config.dev.js
-js/config.js
 
 .claude_code_config.json
 
