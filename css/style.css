@@ -860,22 +860,20 @@ a.mapboxgl-ctrl-logo {
 }
 
 .county-trends-content {
-    padding: 5px;
-    height: calc(100% - 60px);
-    /* Use 100% of drawer height minus header/footer */
+    padding: 5px 5px 20px 5px; /* extra bottom padding prevents canvas from reaching the overflow:hidden boundary */
+    display: flex;
+    flex-direction: column;
+    height: calc(85vh - 175px); /* drawer(85vh) - WA header/footer(~120px) - tab bar(~45px) - padding */
     overflow: hidden;
-    /* Eliminate scroll bars */
-    display: block;
-    /* Remove flexbox to eliminate extra spacing */
 }
 
 /* Chart container specifically for county-wide trends drawer (when clicking "Show County Trends") */
 .county-chart-container {
     position: relative;
-    height: calc(100% - 55px); /* 100% of content area minus explanation text (~35px) + gap (20px) */
+    flex: 1 1 0;    /* grow to fill remaining space; flex algorithm controls height */
+    height: 0;      /* override default so flex sizes it, not the browser default */
     width: 100%;
-    min-height: 400px;
-    max-height: calc(100% - 55px);
+    min-height: 300px;
 }
 
 .chart-loading {

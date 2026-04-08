@@ -345,8 +345,8 @@ class CountyTrends {
               titleColor: 'white',
               bodyColor: 'white',
               cornerRadius: 6,
-              titleFont: { family: 'DINPro, sans-serif', weight: '500', size: 13 },
-              bodyFont: { family: 'DINPro, sans-serif', weight: '400', size: 12 },
+              titleFont: { family: 'DINPro, sans-serif', weight: '500', size: 15 },
+              bodyFont: { family: 'DINPro, sans-serif', weight: '400', size: 14 },
               callbacks: {
                 label: function(context) {
                   const value = context.parsed.y.toLocaleString();
@@ -701,8 +701,8 @@ class CountyTrends {
               titleColor: 'white',
               bodyColor: 'white',
               cornerRadius: 6,
-              titleFont: { family: 'DINPro, sans-serif', weight: '500', size: 13 },
-              bodyFont: { family: 'DINPro, sans-serif', weight: '400', size: 12 },
+              titleFont: { family: 'DINPro, sans-serif', weight: '500', size: 15 },
+              bodyFont: { family: 'DINPro, sans-serif', weight: '400', size: 14 },
               callbacks: {
                 label: function(context) {
                   return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} filings`;
@@ -1050,12 +1050,12 @@ class CountyTrends {
               titleFont: {
                 family: 'DINPro, sans-serif',
                 weight: '500',
-                size: 13
+                size: 15
               },
               bodyFont: {
                 family: 'DINPro, sans-serif',
                 weight: '400',
-                size: 12
+                size: 14
               },
               callbacks: {
                 label: function(context) {
