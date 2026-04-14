@@ -8,7 +8,7 @@ const CONFIG = {
     },
     dateRange: {
         START_DATE: '2019-01',
-        MAX_DATE: '2026-03',
+        MAX_DATE: '2026-02',
         DEFAULT_DATE: '2025-03'  // Default month shown on load
     }
 };
