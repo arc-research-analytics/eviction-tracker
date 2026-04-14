@@ -8,7 +8,7 @@ const CONFIG = {
     },
     dateRange: {
         START_DATE: '2019-01',   // Start of slider range
-        MAX_DATE: '2026-03',     // End of slider range
+        MAX_DATE: '2026-02',     // End of slider range
         DEFAULT_DATE: '2025-03'  // Default month shown on load
     }
 };
