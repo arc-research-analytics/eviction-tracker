@@ -5,5 +5,3 @@ data/processed/
 js/config.dev.js
 
 .claude_code_config.json
-
-CLAUDE.md
