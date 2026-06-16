@@ -75,26 +75,110 @@ The deploy workflow runs automatically and the live site updates within a minute
 
 ---
 
+## Pipeline Setup (First Time)
+
+This section is for anyone setting up the data pipeline on a new machine. You do **not** need to set up the frontend (VS Code Live Server, Mapbox, etc.) to run monthly data updates — the pipeline is a standalone Python script that reads local files and writes to Supabase.
+
+### 1. Clone the repo
+
+```bash
+git clone git@github.com:<org>/eviction-tracker.git
+cd eviction-tracker
+```
+
+You will need push access to the repo — the pipeline script auto-commits and pushes the updated config after each successful run. Set up SSH authentication with GitHub if you haven't already (GitHub → Settings → SSH and GPG keys).
+
+### 2. Set up a Python environment
+
+You need Python 3.9+ with a handful of packages. Use whichever environment manager you prefer:
+
+**conda (recommended — avoids common geopandas/GDAL install issues):**
+```bash
+conda create -n evictions python=3.11
+conda activate evictions
+conda install pandas geopandas pyarrow
+pip install supabase
+```
+
+**pip + venv:**
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install pandas geopandas pyarrow supabase
+```
+
+> Note: `geopandas` can be difficult to install via pip on some systems due to GDAL dependencies. If `pip install geopandas` fails, try the conda approach or see the [geopandas installation docs](https://geopandas.org/en/stable/getting_started/install.html).
+
+Required packages and why:
+| Package | Purpose |
+|---|---|
+| `pandas` | Data loading, cleaning, aggregation |
+| `geopandas` | Spatial joins (assigning evictions to tracts/schools/hexes) |
+| `pyarrow` | Reading Eviction Lab `.parquet` files |
+| `supabase` | Uploading aggregated data to the database |
+
+### 3. Get `el_master.csv`
+
+The compiled historical record of all eviction filings is **not in the repo**. Download `el_master.csv` from the **`WW Handoff`** folder under **`Eviction Tracker Materials`** on the ARC shared drive and place it here:
+
+```
+data-hidden/Eviction-Pipeline/From_EL/el_master.csv
+```
+
+Do not skip this step. Running the pipeline without this file will wipe all historical data from the database. After the first run the script keeps the file updated automatically.
+
+### 4. Configure credentials
+
+The pipeline authenticates to Supabase using a static API key — no ongoing login is required. You need two values: the project URL and the service role key.
+
+**Get your credentials from the Supabase dashboard:**
+1. Accept the Supabase project invite from the outgoing maintainer (you'll receive an email)
+2. Log into [supabase.com](https://supabase.com) and open the eviction tracker project
+3. Go to **Project Settings** (gear icon, bottom of left sidebar) → **API**
+4. Copy the **Project URL** — this is your `SUPABASE_URL`
+5. Under **Project API keys**, copy the **`service_role`** key — this is your `SUPABASE_KEY`
+
+> **Important:** There are two keys listed — `anon` (public) and `service_role` (secret). The pipeline requires the `service_role` key. The anon key will not have sufficient permissions to delete and re-insert data.
+
+**Create your local `.env` file:**
+```bash
+cp data-hidden/Eviction-Pipeline/.env.example data-hidden/Eviction-Pipeline/.env
+```
+
+Open `.env` and paste in the two values:
+```
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_KEY=your-service-role-key-here
+```
+
+This file is gitignored and will never be committed. If the service role key is ever rotated by an admin, return to Project Settings → API to retrieve the new key and update this file.
+
+### 5. Do a dry run
+
+Before running the pipeline for real, set `SKIP_SUPABASE = True` near the top of `eviction_compiler.py` (around line 129). This lets the script run the full data processing without touching the database, so you can confirm your environment is set up correctly.
+
+```bash
+cd data-hidden/Eviction-Pipeline
+python eviction_compiler.py
+```
+
+If it completes without errors, set `SKIP_SUPABASE = False` and you're ready for live runs.
+
+---
+
 ## Monthly Data Update Workflow
 
 Eviction data is updated monthly. The typical workflow is:
 
-1. Receive the new monthly eviction filing data (CSV from court records)
-2. Run the data pipeline script to process and upload the new data:
+1. Obtain the new monthly eviction filing data from Eviction Lab (parquet or CSV format).
+2. Drop the file into `data-hidden/Eviction-Pipeline/From_EL/`.
+3. Run the pipeline script:
    ```bash
    cd data-hidden/Eviction-Pipeline
-   # See pipeline README / comments in eviction_compiler.py for exact steps
    python eviction_compiler.py
    ```
-3. Verify the new month appears correctly in the app locally
-4. Update `MAX_DATE` in `js/config.js` to the new latest month (e.g., `2026-05`)
-5. Commit and push:
-   ```bash
-   git add js/config.js
-   git commit -m "data: update MAX_DATE to 2026-05"
-   git push
-   ```
-   This triggers the deploy workflow and the live app updates automatically.
+   The script handles everything automatically: it merges the new file into `el_master.csv`, performs spatial joins, aggregates by geography, determines the new `MAX_DATE`, updates `js/config.template.js` and `js/config.js`, pushes data to Supabase, and commits + pushes the config change to git.
+4. Verify the new month appears correctly in the live app after the GitHub Actions deploy completes (usually within 1–2 minutes of the push).
 
 ---
 
@@ -145,13 +229,31 @@ When taking over this project, obtain the following from the outgoing maintainer
 
 The `data-hidden/Eviction-Pipeline/eviction_compiler.py` script processes raw eviction records into the format the app expects:
 
-1. Geocodes eviction filings to lat/lon coordinates
-2. Performs spatial joins to assign each filing to a census tract, high school statistical area, and hex cell
-3. Aggregates filings by geography and month
-4. Calculates filing rates using renter-occupied housing unit data
-5. Pushes results to Supabase
+1. Loads all historical eviction data from `el_master.csv` (the compiled master record — see below)
+2. Merges in any new Eviction Lab files dropped into `From_EL/`, deduplicates, and updates `el_master.csv`
+3. Performs spatial joins to assign each filing to a census tract, high school statistical area, and hex cell
+4. Aggregates filings by geography and month
+5. Calculates filing rates using renter-occupied housing unit data
+6. Pushes results to Supabase
 
-The `data-hidden/` directory is gitignored and contains source data, intermediate files, and the pipeline scripts. It is not served by the app.
+### el_master.csv — Critical Dependency
+
+`el_master.csv` is the compiled historical record of all eviction filings from January 2019 to present. It is **not tracked in git** because of its size (~45 MB, ~900k records). The pipeline requires this file to be present before the first run — without it, running the script will process only the newly dropped file and will overwrite all historical data in Supabase.
+
+**Where to get it:** The file is stored in the **`WW Handoff`** folder under **`Eviction Tracker Materials`** on the ARC shared drive. Download it and place it at:
+
+```
+data-hidden/Eviction-Pipeline/From_EL/el_master.csv
+```
+
+After the first run the script keeps this file updated automatically.
+
+### Other pipeline dependencies (in `data-hidden/`, tracked in git)
+
+- `ROcc_HUs_tract.csv`, `ROcc_HUs_school.csv`, `ROcc_HUs_hex.csv`, `ROcc_HUs_city.csv`, `ROcc_HUs_county.csv` — Renter-occupied housing unit counts by geography, used to calculate filing rates
+- `region_tracts_hires.geojson`, `region_schools_hires.geojson` — High-resolution boundary files used for spatial joins (the simplified versions in `data/` are for map display only)
+
+The `data-hidden/Eviction-Pipeline/.env` file holds Supabase credentials and is gitignored. Copy `.env.example` to `.env` and fill in your credentials to run the pipeline locally.
 
 ---
 
@@ -189,6 +291,93 @@ data-hidden/            Data pipeline scripts and source data (gitignored, not s
 .github/workflows/      GitHub Actions — deploy.yml auto-deploys to GitHub Pages on push to main
 CLAUDE.md               Developer notes for Claude Code AI assistant
 ```
+
+---
+
+## Repo Migration Checklist
+
+This section documents the steps required to complete the transition from the current public repo (`arc-research-analytics/eviction-tracker`) to a new private repo on a different GitHub account, with the old public URL redirecting to the new one.
+
+### Step 1 — Archive `el_master.csv` to shared storage
+- [ ] Copy `data-hidden/Eviction-Pipeline/From_EL/el_master.csv` to the **`WW Handoff`** folder under **`Eviction Tracker Materials`** on the ARC shared drive (so a successor can retrieve it per the instructions in the [Data Pipeline](#data-pipeline) section above)
+
+### Step 2 — Create the new private repo
+- [ ] Create a new private repository on the destination GitHub account
+- [ ] Add the new repo as a remote and push all current code: `git remote add new-origin <url> && git push new-origin main`
+- [ ] Confirm the full commit history is present on the new repo before proceeding
+
+### Step 3 — Restructure `.gitignore` on the new repo
+The current `.gitignore` blanket-ignores all of `data-hidden/`. On the new private repo, only credentials and large/regenerable data files should be ignored. Replace the `data-hidden/` entry with these targeted rules:
+
+```
+# Credentials
+data-hidden/Eviction-Pipeline/.env
+
+# Large raw data files (regenerable or too large to track)
+data-hidden/Eviction-Pipeline/From_EL/
+data-hidden/Eviction-Pipeline/From_FultonAPI/all_fulton_props.csv
+data-hidden/Eviction-Pipeline/From_FultonAPI/Assessor_Fulton.csv
+data-hidden/Eviction-Pipeline/From_FultonAPI/Apartments_Fulton.csv
+data-hidden/Eviction-Pipeline/fulton_geocoded.csv
+data-hidden/evictions_*.csv
+data-hidden/Fulton.csv
+data-hidden/fulton-export.csv
+data-hidden/eviction_month_summary.csv
+data-hidden/eviction_tract_summary.csv
+```
+
+This makes the pipeline script, ROcc CSVs, and hires GeoJSON trackable so a future maintainer who clones the repo has everything needed to run the pipeline (except credentials and the master CSV).
+
+### Step 4 — Add `.env.example`
+- [ ] Create `data-hidden/Eviction-Pipeline/.env.example` with placeholder values:
+  ```
+  # Supabase credentials — obtain from Supabase project settings > API
+  SUPABASE_URL=https://your-project-id.supabase.co
+  SUPABASE_KEY=your-service-role-key-here
+  ```
+- [ ] Commit and push this file to the new repo
+
+### Step 5 — Remove the legacy Fulton API pipeline
+The `From_FultonAPI/` directory and `fulton_geocoded.csv` are no longer used by `eviction_compiler.py` (Eviction Lab now covers Fulton County). Do not port these to the new repo. If they were accidentally pushed, remove them:
+- [ ] Delete `data-hidden/Eviction-Pipeline/From_FultonAPI/` (entire directory)
+- [ ] Delete `data-hidden/Eviction-Pipeline/fulton_geocoded.csv`
+
+### Step 6 — Add the safety guard to `eviction_compiler.py`
+- [ ] Add an early exit to `main()` that aborts with a clear error message if `el_master.csv` is missing and no other EL files are present in `From_EL/`. This prevents a silent run that would wipe all historical Supabase data. The message should point the user to the `WW Handoff` folder.
+
+### Step 7 — Configure GitHub Actions on the new repo
+- [ ] Go to the new repo → Settings → Secrets and Variables → Actions
+- [ ] Add the three repository secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `MAPBOX_ACCESS_TOKEN`
+- [ ] Confirm `.github/workflows/deploy.yml` is present and GitHub Pages is enabled (Settings → Pages → Source: GitHub Actions)
+- [ ] Push a test commit and verify the deploy succeeds and the live site loads
+
+### Step 8 — Update the Mapbox token allowlist
+- [ ] Log into the ARC Mapbox account and open the `evictions` token settings
+- [ ] Add the new GitHub Pages URL (e.g., `https://new-account.github.io/eviction-tracker/*`) to the token's allowed URLs
+- [ ] Keep the old GitHub Pages URL in the allowlist until the redirect is in place and confirmed working
+
+### Step 9 — Convert the old public repo to a redirect
+Once the new site is live and confirmed:
+- [ ] Delete all files from the old public repo except `index.html`
+- [ ] Replace `index.html` with a meta-refresh redirect:
+  ```html
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta http-equiv="refresh" content="0; url=https://new-account.github.io/eviction-tracker/">
+      <link rel="canonical" href="https://new-account.github.io/eviction-tracker/">
+    </head>
+    <body>
+      <p>This page has moved. <a href="https://new-account.github.io/eviction-tracker/">Click here</a> if you are not redirected.</p>
+    </body>
+  </html>
+  ```
+- [ ] Push to `main` on the old repo and confirm the redirect works in a browser
+
+### Step 10 — Rotate credentials
+- [ ] Rotate the Supabase service-role key (used in `.env`) via the Supabase dashboard → Project Settings → API → Regenerate
+- [ ] Update the `.env` file and the new repo's GitHub Secrets with the new key
+- [ ] Optionally, verify the old key no longer works
 
 ---
 
