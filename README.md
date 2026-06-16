@@ -66,11 +66,13 @@ No build process — the app is plain HTML, CSS, and JavaScript served staticall
 The app deploys automatically to **GitHub Pages** when changes are pushed to `main`. The GitHub Actions workflow (`.github/workflows/deploy.yml`) generates `js/config.js` from repository secrets at deploy time — you do not need to manage `js/config.js` manually for deployments.
 
 **To update the live app:**
+
 ```bash
 git add <changed files>
 git commit -m "your message"
 git push origin main
 ```
+
 The deploy workflow runs automatically and the live site updates within a minute or two.
 
 ---
@@ -93,6 +95,7 @@ You will need push access to the repo — the pipeline script auto-commits and p
 You need Python 3.9+ with a handful of packages. Use whichever environment manager you prefer:
 
 **conda (recommended — avoids common geopandas/GDAL install issues):**
+
 ```bash
 conda create -n evictions python=3.11
 conda activate evictions
@@ -101,6 +104,7 @@ pip install supabase
 ```
 
 **pip + venv:**
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
@@ -132,6 +136,7 @@ Do not skip this step. Running the pipeline without this file will wipe all hist
 The pipeline authenticates to Supabase using a static API key — no ongoing login is required. You need two values: the project URL and the service role key.
 
 **Get your credentials from the Supabase dashboard:**
+
 1. Accept the Supabase project invite from the outgoing maintainer (you'll receive an email)
 2. Log into [supabase.com](https://supabase.com) and open the eviction tracker project
 3. Go to **Project Settings** (gear icon, bottom of left sidebar) → **API**
@@ -141,11 +146,13 @@ The pipeline authenticates to Supabase using a static API key — no ongoing log
 > **Important:** There are two keys listed — `anon` (public) and `service_role` (secret). The pipeline requires the `service_role` key. The anon key will not have sufficient permissions to delete and re-insert data.
 
 **Create your local `.env` file** (the pipeline script reads credentials from this specific location — do not place it anywhere else):
+
 ```bash
 cp data-hidden/Eviction-Pipeline/.env.example data-hidden/Eviction-Pipeline/.env
 ```
 
 Open `data-hidden/Eviction-Pipeline/.env` and paste in the two values:
+
 ```
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_KEY=your-service-role-key-here
@@ -187,10 +194,12 @@ Eviction data is updated monthly. The typical workflow is:
 The repository is at `https://github.com/atlregional/eviction-tracker`.
 
 To push changes you need:
+
 1. **Membership in the `atlregional` GitHub organization** — request an invite from an org admin
 2. **Authentication** — either SSH keys or a Personal Access Token:
 
 **SSH (recommended):**
+
 ```bash
 # Generate a key if you don't have one
 ssh-keygen -t ed25519 -C "your_email@example.com"
@@ -215,13 +224,13 @@ Generate one at GitHub → Settings → Developer Settings → Personal Access T
 
 When taking over this project, obtain the following from the outgoing maintainer:
 
-| Credential | Where to find it | Notes |
-|---|---|---|
-| Supabase URL | Supabase dashboard → Project Settings → API | |
-| Supabase anon key | Supabase dashboard → Project Settings → API | |
-| Mapbox token | ARC Mapbox account → Tokens | Use the existing `evictions` token — **do not create a new one**, as its URL allowlist is already configured for both localhost:5500 and the GitHub Pages domain |
-| GitHub org invite | Ask an `atlregional` org admin | Needed to push changes |
-| GitHub Secrets | GitHub repo → Settings → Secrets and Variables | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `MAPBOX_ACCESS_TOKEN` — must be set for the deploy workflow to generate production config |
+| Credential        | Where to find it                               | Notes                                                                                                                                                            |
+| ----------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase URL      | Supabase dashboard → Project Settings → API    |                                                                                                                                                                  |
+| Supabase anon key | Supabase dashboard → Project Settings → API    |                                                                                                                                                                  |
+| Mapbox token      | ARC Mapbox account → Tokens                    | Use the existing `evictions` token — **do not create a new one**, as its URL allowlist is already configured for both localhost:5500 and the GitHub Pages domain |
+| GitHub org invite | Ask an `atlregional` org admin                 | Needed to push changes                                                                                                                                           |
+| GitHub Secrets    | GitHub repo → Settings → Secrets and Variables | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `MAPBOX_ACCESS_TOKEN` — must be set for the deploy workflow to generate production config                                   |
 
 ---
 
@@ -300,14 +309,17 @@ CLAUDE.md               Developer notes for Claude Code AI assistant
 This section documents the steps required to complete the transition from the current public repo (`arc-research-analytics/eviction-tracker`) to a new private repo on a different GitHub account, with the old public URL redirecting to the new one.
 
 ### Step 1 — Archive `el_master.csv` to shared storage
+
 - [ ] Copy `data-hidden/Eviction-Pipeline/From_EL/el_master.csv` to the **`WW Handoff`** folder under **`Eviction Tracker Materials`** on the ARC shared drive (so a successor can retrieve it per the instructions in the [Data Pipeline](#data-pipeline) section above)
 
 ### Step 2 — Create the new private repo
+
 - [ ] Create a new private repository on the destination GitHub account
 - [ ] Add the new repo as a remote and push all current code: `git remote add new-origin <url> && git push new-origin main`
 - [ ] Confirm the full commit history is present on the new repo before proceeding
 
 ### Step 3 — Restructure `.gitignore` on the new repo
+
 The current `.gitignore` blanket-ignores all of `data-hidden/`. On the new private repo, only credentials and large/regenerable data files should be ignored. Replace the `data-hidden/` entry with these targeted rules:
 
 ```
@@ -330,6 +342,7 @@ data-hidden/eviction_tract_summary.csv
 This makes the pipeline script, ROcc CSVs, and hires GeoJSON trackable so a future maintainer who clones the repo has everything needed to run the pipeline (except credentials and the master CSV).
 
 ### Step 4 — Add `.env.example`
+
 - [ ] Create `data-hidden/Eviction-Pipeline/.env.example` with placeholder values:
   ```
   # Supabase credentials — obtain from Supabase project settings > API
@@ -339,43 +352,61 @@ This makes the pipeline script, ROcc CSVs, and hires GeoJSON trackable so a futu
 - [ ] Commit and push this file to the new repo
 
 ### Step 5 — Remove the legacy Fulton API pipeline
+
 The `From_FultonAPI/` directory and `fulton_geocoded.csv` are no longer used by `eviction_compiler.py` (Eviction Lab now covers Fulton County). Do not port these to the new repo. If they were accidentally pushed, remove them:
+
 - [ ] Delete `data-hidden/Eviction-Pipeline/From_FultonAPI/` (entire directory)
 - [ ] Delete `data-hidden/Eviction-Pipeline/fulton_geocoded.csv`
 
 ### Step 6 — Add the safety guard to `eviction_compiler.py`
+
 - [ ] Add an early exit to `main()` that aborts with a clear error message if `el_master.csv` is missing and no other EL files are present in `From_EL/`. This prevents a silent run that would wipe all historical Supabase data. The message should point the user to the `WW Handoff` folder.
 
 ### Step 7 — Configure GitHub Actions on the new repo
+
 - [ ] Go to the new repo → Settings → Secrets and Variables → Actions
 - [ ] Add the three repository secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `MAPBOX_ACCESS_TOKEN`
 - [ ] Confirm `.github/workflows/deploy.yml` is present and GitHub Pages is enabled (Settings → Pages → Source: GitHub Actions)
 - [ ] Push a test commit and verify the deploy succeeds and the live site loads
 
 ### Step 8 — Update the Mapbox token allowlist
+
 - [ ] Log into the ARC Mapbox account and open the `evictions` token settings
 - [ ] Add the new GitHub Pages URL (e.g., `https://new-account.github.io/eviction-tracker/*`) to the token's allowed URLs
 - [ ] Keep the old GitHub Pages URL in the allowlist until the redirect is in place and confirmed working
 
 ### Step 9 — Convert the old public repo to a redirect
+
 Once the new site is live and confirmed:
+
 - [ ] Delete all files from the old public repo except `index.html`
 - [ ] Replace `index.html` with a meta-refresh redirect:
   ```html
   <!DOCTYPE html>
   <html>
     <head>
-      <meta http-equiv="refresh" content="0; url=https://new-account.github.io/eviction-tracker/">
-      <link rel="canonical" href="https://new-account.github.io/eviction-tracker/">
+      <meta
+        http-equiv="refresh"
+        content="0; url=https://new-account.github.io/eviction-tracker/"
+      />
+      <link
+        rel="canonical"
+        href="https://new-account.github.io/eviction-tracker/"
+      />
     </head>
     <body>
-      <p>This page has moved. <a href="https://new-account.github.io/eviction-tracker/">Click here</a> if you are not redirected.</p>
+      <p>
+        This page has moved.
+        <a href="https://new-account.github.io/eviction-tracker/">Click here</a>
+        if you are not redirected.
+      </p>
     </body>
   </html>
   ```
 - [ ] Push to `main` on the old repo and confirm the redirect works in a browser
 
 ### Step 10 — Rotate credentials
+
 - [ ] Rotate the Supabase service-role key (used in `.env`) via the Supabase dashboard → Project Settings → API → Regenerate
 - [ ] Update the `.env` file and the new repo's GitHub Secrets with the new key
 - [ ] Optionally, verify the old key no longer works
