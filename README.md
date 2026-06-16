@@ -29,7 +29,7 @@ No build process — the app is plain HTML, CSS, and JavaScript served staticall
 
 - **VS Code** with the **[Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer)** extension — this is required, not optional (see port note below)
 - Credentials for Supabase and Mapbox (obtain from outgoing maintainer — see [Credentials Handoff](#credentials-handoff))
-- Git access to the `arc-research-analytics` GitHub organization (see [GitHub Access](#github-access))
+- Git access to the `atlregional` GitHub organization (see [GitHub Access](#github-access))
 
 ### Port 5500 Requirement
 
@@ -41,7 +41,7 @@ No build process — the app is plain HTML, CSS, and JavaScript served staticall
 
 1. Clone the repository:
    ```bash
-   git clone git@github.com:arc-research-analytics/eviction-tracker.git
+   git clone git@github.com:atlregional/eviction-tracker.git
    cd eviction-tracker
    ```
 2. Copy the config template and fill in your credentials:
@@ -82,7 +82,7 @@ This section is for anyone setting up the data pipeline on a new machine. You do
 ### 1. Clone the repo
 
 ```bash
-git clone git@github.com:<org>/eviction-tracker.git
+git clone git@github.com:atlregional/eviction-tracker.git
 cd eviction-tracker
 ```
 
@@ -119,8 +119,14 @@ Required packages and why:
 
 ### 3. Get `el_master.csv`
 
-The compiled historical record of all eviction filings is **not in the repo**. Download `el_master.csv` from the **`WW Handoff`** folder under **`Eviction Tracker Materials`** on the ARC shared drive and place it here:
+The compiled historical record of all eviction filings is **not in the repo**. Download `el_master.csv` from the **`WW Handoff/Eviction File/`** folder on the ARC shared OneDrive.
 
+The `From_EL/` directory is gitignored and will not exist in a fresh clone — create it first:
+```bash
+mkdir -p data-hidden/Eviction-Pipeline/From_EL
+```
+
+Then place the file at:
 ```
 data-hidden/Eviction-Pipeline/From_EL/el_master.csv
 ```
@@ -184,10 +190,10 @@ Eviction data is updated monthly. The typical workflow is:
 
 ## GitHub Access
 
-The repository is at `https://github.com/arc-research-analytics/eviction-tracker`.
+The repository is at `https://github.com/atlregional/eviction-tracker`.
 
 To push changes you need:
-1. **Membership in the `arc-research-analytics` GitHub organization** — request an invite from an org admin
+1. **Membership in the `atlregional` GitHub organization** — request an invite from an org admin
 2. **Authentication** — either SSH keys or a Personal Access Token:
 
 **SSH (recommended):**
@@ -200,7 +206,7 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 # Paste the contents of ~/.ssh/id_ed25519.pub
 
 # Switch your local remote to SSH
-git remote set-url origin git@github.com:arc-research-analytics/eviction-tracker.git
+git remote set-url origin git@github.com:atlregional/eviction-tracker.git
 
 # Test it
 ssh -T git@github.com
@@ -220,7 +226,7 @@ When taking over this project, obtain the following from the outgoing maintainer
 | Supabase URL | Supabase dashboard → Project Settings → API | |
 | Supabase anon key | Supabase dashboard → Project Settings → API | |
 | Mapbox token | ARC Mapbox account → Tokens | Use the existing `evictions` token — **do not create a new one**, as its URL allowlist is already configured for both localhost:5500 and the GitHub Pages domain |
-| GitHub org invite | Ask an `arc-research-analytics` org admin | Needed to push changes |
+| GitHub org invite | Ask an `atlregional` org admin | Needed to push changes |
 | GitHub Secrets | GitHub repo → Settings → Secrets and Variables | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `MAPBOX_ACCESS_TOKEN` — must be set for the deploy workflow to generate production config |
 
 ---
@@ -240,7 +246,7 @@ The `data-hidden/Eviction-Pipeline/eviction_compiler.py` script processes raw ev
 
 `el_master.csv` is the compiled historical record of all eviction filings from January 2019 to present. It is **not tracked in git** because of its size (~45 MB, ~900k records). The pipeline requires this file to be present before the first run — without it, running the script will process only the newly dropped file and will overwrite all historical data in Supabase.
 
-**Where to get it:** The file is stored in the **`WW Handoff`** folder under **`Eviction Tracker Materials`** on the ARC shared drive. Download it and place it at:
+**Where to get it:** The file is stored in the **`WW Handoff/Eviction File/`** folder on the ARC shared OneDrive. Download it and place it at (create the directory first if it doesn't exist: `mkdir -p data-hidden/Eviction-Pipeline/From_EL`):
 
 ```
 data-hidden/Eviction-Pipeline/From_EL/el_master.csv
@@ -250,8 +256,9 @@ After the first run the script keeps this file updated automatically.
 
 ### Other pipeline dependencies (in `data-hidden/`, tracked in git)
 
+- `eviction_compiler.py` — The pipeline script itself
 - `ROcc_HUs_tract.csv`, `ROcc_HUs_school.csv`, `ROcc_HUs_hex.csv`, `ROcc_HUs_city.csv`, `ROcc_HUs_county.csv` — Renter-occupied housing unit counts by geography, used to calculate filing rates
-- `region_tracts_hires.geojson`, `region_schools_hires.geojson` — High-resolution boundary files used for spatial joins (the simplified versions in `data/` are for map display only)
+- `region_tracts_hires.geojson`, `region_schools_hires.geojson`, `region_counties_hires.geojson` — High-resolution boundary files used for spatial joins (the simplified versions in `data/` are for map display only)
 
 The `data-hidden/Eviction-Pipeline/.env` file holds Supabase credentials and is gitignored. Copy `.env.example` to `.env` and fill in your credentials to run the pipeline locally.
 
@@ -287,7 +294,7 @@ data/                   GeoJSON boundary files
   region_labels.geojson           County name labels
   region_cities.geojson           City boundary polygons
 assets/                 Images and logos
-data-hidden/            Data pipeline scripts and source data (gitignored, not served)
+data-hidden/            Data pipeline scripts and reference data (scripts and GeoJSONs tracked in git; large data files gitignored — see Data Pipeline section)
 .github/workflows/      GitHub Actions — deploy.yml auto-deploys to GitHub Pages on push to main
 CLAUDE.md               Developer notes for Claude Code AI assistant
 ```
