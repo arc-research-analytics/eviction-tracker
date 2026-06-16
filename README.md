@@ -148,6 +148,7 @@ The pipeline authenticates to Supabase using a static API key — no ongoing log
 **Create your local `.env` file** (the pipeline script reads credentials from this specific location — do not place it anywhere else):
 
 Rename `data-hidden/Eviction-Pipeline/.env.example` to `.env` (remove the `.example` suffix). You can do this in Finder/Explorer or via terminal:
+
 ```bash
 mv data-hidden/Eviction-Pipeline/.env.example data-hidden/Eviction-Pipeline/.env
 ```
