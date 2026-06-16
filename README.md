@@ -119,14 +119,8 @@ Required packages and why:
 
 ### 3. Get `el_master.csv`
 
-The compiled historical record of all eviction filings is **not in the repo**. Download `el_master.csv` from the **`WW Handoff/Eviction File/`** folder on the ARC shared OneDrive.
+The compiled historical record of all eviction filings is **not in the repo**. Download `el_master.csv` from the **`WW Handoff/Eviction Filings - From EL`** folder on the ARC shared OneDrive and place it at:
 
-The `From_EL/` directory is gitignored and will not exist in a fresh clone — create it first:
-```bash
-mkdir -p data-hidden/Eviction-Pipeline/From_EL
-```
-
-Then place the file at:
 ```
 data-hidden/Eviction-Pipeline/From_EL/el_master.csv
 ```
@@ -146,12 +140,12 @@ The pipeline authenticates to Supabase using a static API key — no ongoing log
 
 > **Important:** There are two keys listed — `anon` (public) and `service_role` (secret). The pipeline requires the `service_role` key. The anon key will not have sufficient permissions to delete and re-insert data.
 
-**Create your local `.env` file:**
+**Create your local `.env` file** (the pipeline script reads credentials from this specific location — do not place it anywhere else):
 ```bash
 cp data-hidden/Eviction-Pipeline/.env.example data-hidden/Eviction-Pipeline/.env
 ```
 
-Open `.env` and paste in the two values:
+Open `data-hidden/Eviction-Pipeline/.env` and paste in the two values:
 ```
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_KEY=your-service-role-key-here
@@ -246,7 +240,7 @@ The `data-hidden/Eviction-Pipeline/eviction_compiler.py` script processes raw ev
 
 `el_master.csv` is the compiled historical record of all eviction filings from January 2019 to present. It is **not tracked in git** because of its size (~45 MB, ~900k records). The pipeline requires this file to be present before the first run — without it, running the script will process only the newly dropped file and will overwrite all historical data in Supabase.
 
-**Where to get it:** The file is stored in the **`WW Handoff/Eviction File/`** folder on the ARC shared OneDrive. Download it and place it at (create the directory first if it doesn't exist: `mkdir -p data-hidden/Eviction-Pipeline/From_EL`):
+**Where to get it:** The file is stored in the **`WW Handoff/Eviction Filings - From EL`** folder on the ARC shared OneDrive. Download it and place it at:
 
 ```
 data-hidden/Eviction-Pipeline/From_EL/el_master.csv

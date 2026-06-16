@@ -9,8 +9,9 @@ js/config.dev.js
 # Pipeline: credentials (never commit)
 data-hidden/Eviction-Pipeline/.env
 
-# Pipeline: large data files (el_master.csv available on OneDrive — WW Handoff/Eviction File/)
-data-hidden/Eviction-Pipeline/From_EL/
+# Pipeline: large data files (el_master.csv available on OneDrive — WW Handoff/Eviction Filings - From EL)
+data-hidden/Eviction-Pipeline/From_EL/*
+!data-hidden/Eviction-Pipeline/From_EL/.gitkeep
 
 # Pipeline: legacy/dead code (Fulton API — superseded by Eviction Lab)
 data-hidden/Eviction-Pipeline/From_FultonAPI/
