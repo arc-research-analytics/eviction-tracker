@@ -433,16 +433,11 @@ class CountyTrends {
 
       this.cityData = { cityNames, byCityAndMonth, labels, allMonths };
 
-      // Default: preferred cities (excluding Atlanta which dominates the scale).
-      // Case-insensitive match in case DB casing differs.
-      const preferredDefaults = ['Marietta', 'South Fulton', 'Sandy Springs', 'East Point'];
-      this.selectedCities = preferredDefaults
-        .map(name => cityNames.find(c => c.toLowerCase() === name.toLowerCase()))
-        .filter(Boolean);
-      // Fallback: top 4 non-Atlanta cities by filings if preferred names don't match
-      if (this.selectedCities.length === 0) {
-        this.selectedCities = cityNamesByFilings.filter(c => c !== 'Atlanta').slice(0, 4);
-      }
+      // Default: Atlanta only. Fallback to top city by filings if Atlanta not found.
+      const atlantaMatch = cityNames.find(c => c.toLowerCase() === 'atlanta');
+      this.selectedCities = atlantaMatch
+        ? [atlantaMatch]
+        : [cityNamesByFilings[0]].filter(Boolean);
 
       this.hideLoading();
       this.populateCitySelect();
